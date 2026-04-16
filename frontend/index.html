@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Facturo</title>
+<title>FacturAI</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 :root{--primary:#1D9E75;--primary-dark:#157a5a;--primary-light:#e8f7f2;--bg:#f7f8fa;--sidebar:#111827;--text:#1a1a2e;--muted:#6b7280;--border:#e5e7eb;--white:#fff;--red:#ef4444;--orange:#f59e0b;--blue:#3b82f6;--shadow:0 1px 3px rgba(0,0,0,.08);}
@@ -172,7 +172,7 @@ textarea{resize:vertical;min-height:70px;}
 <div id="sidebar">
   <div class="logo">
     <div class="logo-icon">F</div>
-    <div class="logo-text">Facturo</div>
+    <div class="logo-text">FacturAI</div>
   </div>
   <nav>
     <div class="nav-section">Principal</div>
@@ -402,7 +402,7 @@ textarea{resize:vertical;min-height:70px;}
       <div class="chat-layout">
         <div class="chat-main">
           <div class="chat-messages" id="chatMessages">
-            <div class="msg ai">Bonjour ! Je suis votre assistant Facturo. Je peux vous aider à analyser vos factures, rédiger des emails, générer des rapports ou répondre à toute question sur votre activité. Comment puis-je vous aider ?</div>
+            <div class="msg ai">Bonjour ! Je suis votre assistant FacturAI. Je peux vous aider à analyser vos factures, rédiger des emails, générer des rapports ou répondre à toute question sur votre activité. Comment puis-je vous aider ?</div>
           </div>
           <div class="chat-input-row">
             <input type="text" id="chatInput" placeholder="Posez votre question..." onkeydown="if(event.key==='Enter')sendChat()"/>
@@ -762,7 +762,7 @@ async function sendChat() {
   appendMsg(msg, 'user');
   const loadEl = appendMsg('…', 'ai loading');
   const ctx = buildContext();
-  const systemMsg = `Tu es l'assistant IA de Facturo, une application de facturation. Tu aides les utilisateurs à gérer leurs factures, analyser leur activité, et rédiger des communications professionnelles. Réponds en français, de façon concise et utile.${ctx}`;
+  const systemMsg = `Tu es l'assistant IA de FacturAI, une application de facturation. Tu aides les utilisateurs à gérer leurs factures, analyser leur activité, et rédiger des communications professionnelles. Réponds en français, de façon concise et utile.${ctx}`;
   try {
     const reply = await callClaude([{role:'user',content:msg}], systemMsg);
     loadEl.textContent = reply;
