@@ -793,7 +793,7 @@ function appendMsg(text, cls) {
 
 // ─── CLAUDE API ───────────────────────────────────────────────────────────────
 async function callClaude(messages, system) {
-  const body = { model:'claude-sonnet-4-20250514', max_tokens:1024, messages };
+  const body = { model:'claude-sonnet-4-5', max_tokens:1024, messages };
   if(system) body.system = system;
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method:'POST',
