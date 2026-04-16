@@ -151,6 +151,11 @@ textarea{resize:vertical;min-height:70px;}
 .sugg-label{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:8px;}
 .sugg-item{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;cursor:pointer;margin-bottom:6px;line-height:1.3;}
 .sugg-item:hover{border-color:var(--primary);color:var(--primary);}
+/* CHAT INLINE SUGGESTIONS */
+.chat-suggestions{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-self:stretch;max-width:520px;}
+.chat-sugg-item{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:12px;line-height:1.4;cursor:pointer;transition:all .15s;color:var(--text);}
+.chat-sugg-item:hover{border-color:var(--primary);color:var(--primary);background:var(--primary-light);}
+@media(max-width:768px){.chat-suggestions{max-width:100%;}}
 /* MODALS */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;display:none;align-items:center;justify-content:center;}
 .modal-overlay.open{display:flex;}
@@ -472,6 +477,13 @@ textarea{resize:vertical;min-height:70px;}
         <div class="chat-main">
           <div class="chat-messages" id="chatMessages">
             <div class="msg ai">Bonjour ! Je suis votre assistant FacturAI. Je peux vous aider à analyser vos factures, rédiger des emails, générer des rapports ou répondre à toute question sur votre activité. Comment puis-je vous aider ?</div>
+            <div class="chat-suggestions" id="chatSuggestions">
+              <div class="chat-sugg-item" onclick="chatSuggClick(this)">🔴 Quelles factures sont en retard ?</div>
+              <div class="chat-sugg-item" onclick="chatSuggClick(this)">📈 Quel est mon CA du mois ?</div>
+              <div class="chat-sugg-item" onclick="chatSuggClick(this)">✉️ Rédige un email de relance professionnel</div>
+              <div class="chat-sugg-item" onclick="chatSuggClick(this)">💰 Analyse ma trésorerie</div>
+              <div class="chat-sugg-item" onclick="chatSuggClick(this)">🏆 Quels sont mes meilleurs clients ?</div>
+            </div>
           </div>
           <div class="chat-input-row">
             <input type="text" id="chatInput" placeholder="Posez votre question..." onkeydown="if(event.key==='Enter')sendChat()"/>
@@ -810,6 +822,13 @@ function markPaid(id) {
 // ─── CHAT ─────────────────────────────────────────────────────────────────────
 function toggleCtx(el) { el.classList.toggle('active'); const c=el.dataset.ctx; if(activeCtx.has(c)) activeCtx.delete(c); else activeCtx.add(c); }
 function askSuggestion(el) { document.getElementById('chatInput').value = el.textContent; sendChat(); }
+function chatSuggClick(el) {
+  // Extrait le texte sans l'emoji de début
+  const text = el.textContent.replace(/^[\p{Emoji}\s]+/u, '').trim();
+  document.getElementById('chatInput').value = text;
+  document.getElementById('chatSuggestions').style.display = 'none';
+  sendChat();
+}
 function buildContext() {
   let ctx = '';
   if(activeCtx.has('invoices')) {
