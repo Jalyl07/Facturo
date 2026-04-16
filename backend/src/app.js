@@ -8,6 +8,7 @@ const clientsRoutes = require('./routes/clients');
 const facturesRoutes = require('./routes/factures');
 const iaRoutes = require('./routes/ia');
 const stripeRoutes = require('./routes/stripe');
+const claudeRoutes = require('./routes/claude');
 
 const app = express();
 
@@ -23,8 +24,20 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // CORS
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  'http://localhost:5173',
+  'https://frontend-two-khaki-14.vercel.app',
+].filter(Boolean);
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.some(o => origin.startsWith(o))) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS non autorisé : ' + origin));
+    }
+  },
   credentials: true
 }));
 
@@ -41,6 +54,7 @@ app.use('/api/clients', clientsRoutes);
 app.use('/api/factures', facturesRoutes);
 app.use('/api/ia', iaRoutes);
 app.use('/api/stripe', stripeRoutes);
+app.use('/api/claude', claudeRoutes);
 
 // Route de santé
 app.get('/api/health', (req, res) => {

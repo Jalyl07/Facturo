@@ -21,9 +21,7 @@ nav{flex:1;padding:16px 0;}
 .nav-item.active::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--primary);border-radius:0 3px 3px 0;}
 .nav-icon{width:18px;text-align:center;font-size:16px;}
 .sidebar-footer{padding:16px 20px;border-top:1px solid rgba(255,255,255,.08);}
-.api-key-input{width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:6px;color:#fff;padding:7px 10px;font-size:12px;outline:none;}
-.api-key-input::placeholder{color:rgba(255,255,255,.3);}
-.api-label{color:rgba(255,255,255,.4);font-size:10px;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;}
+.sidebar-badge{background:rgba(29,158,117,.2);color:var(--primary);border-radius:6px;padding:8px 12px;font-size:11px;text-align:center;}
 /* MAIN */
 #main{flex:1;overflow-y:auto;display:flex;flex-direction:column;}
 .topbar{background:var(--white);border-bottom:1px solid var(--border);padding:0 32px;height:60px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
@@ -196,8 +194,7 @@ textarea{resize:vertical;min-height:70px;}
     </div>
   </nav>
   <div class="sidebar-footer">
-    <div class="api-label">Clé API Claude</div>
-    <input class="api-key-input" type="password" id="apiKeyInput" placeholder="sk-ant-..."/>
+    <div class="sidebar-badge">✨ IA propulsée par Claude</div>
   </div>
 </div>
 
@@ -464,7 +461,7 @@ if (!invoices.length) {
 function saveInvoices() { localStorage.setItem('facturo_invoices', JSON.stringify(invoices)); }
 function fmtMoney(n) { return n.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €'; }
 function fmtDate(d) { if(!d) return '—'; const p=d.split('-'); return `${p[2]}/${p[1]}/${p[0]}`; }
-function apiKey() { return document.getElementById('apiKeyInput').value.trim(); }
+
 
 // ─── NAVIGATION ──────────────────────────────────────────────────────────────
 const pageTitles = {dashboard:'Tableau de bord',invoices:'Factures',create:'Nouvelle facture',relances:'Relances IA',chat:'Assistant IA'};
@@ -711,8 +708,6 @@ function renderRelances() {
 async function genRelanceIA(id, btn) {
   const inv = invoices.find(i => i.id===id);
   if(!inv) return;
-  const key = apiKey();
-  if(!key) { toast('Clé API Claude requise dans la sidebar', true); return; }
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span>Génération...';
   const today = new Date();
@@ -763,8 +758,6 @@ async function sendChat() {
   const input = document.getElementById('chatInput');
   const msg = input.value.trim();
   if(!msg) return;
-  const key = apiKey();
-  if(!key) { toast('Clé API Claude requise dans la sidebar', true); return; }
   input.value = '';
   appendMsg(msg, 'user');
   const loadEl = appendMsg('…', 'ai loading');
@@ -792,25 +785,22 @@ function appendMsg(text, cls) {
 }
 
 // ─── CLAUDE API ───────────────────────────────────────────────────────────────
+const BACKEND = 'https://facturo-production-2dbb.up.railway.app';
+
 async function callClaude(messages, system) {
-  const body = { model:'claude-sonnet-4-5', max_tokens:1024, messages };
+  const body = { messages };
   if(system) body.system = system;
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+  const res = await fetch(`${BACKEND}/api/claude`, {
     method:'POST',
-    headers:{
-      'Content-Type':'application/json',
-      'x-api-key': apiKey(),
-      'anthropic-version':'2023-06-01',
-      'anthropic-dangerous-direct-browser-access':'true'
-    },
+    headers:{'Content-Type':'application/json'},
     body: JSON.stringify(body)
   });
   if(!res.ok) {
-    const err = await res.json().catch(()=>({error:{message:res.statusText}}));
-    throw new Error(err.error?.message || res.statusText);
+    const err = await res.json().catch(()=>({erreur:res.statusText}));
+    throw new Error(err.erreur || res.statusText);
   }
   const data = await res.json();
-  return data.content?.[0]?.text || '';
+  return data.text || '';
 }
 
 // ─── UTILS ────────────────────────────────────────────────────────────────────
