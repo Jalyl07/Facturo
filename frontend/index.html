@@ -1,11 +1,829 @@
-<!DOCTYPE html>                                                                                                                                                             <html lang="fr">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Facturo</title>
-  </head>
-  <body>
-    <div id="app"></div>
-  </body>
-  </html>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Facturo</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{--primary:#1D9E75;--primary-dark:#157a5a;--primary-light:#e8f7f2;--bg:#f7f8fa;--sidebar:#111827;--text:#1a1a2e;--muted:#6b7280;--border:#e5e7eb;--white:#fff;--red:#ef4444;--orange:#f59e0b;--blue:#3b82f6;--shadow:0 1px 3px rgba(0,0,0,.08);}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);display:flex;height:100vh;overflow:hidden;}
+/* SIDEBAR */
+#sidebar{width:240px;background:var(--sidebar);display:flex;flex-direction:column;flex-shrink:0;transition:width .2s;}
+.logo{padding:24px 20px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,.08);}
+.logo-icon{width:34px;height:34px;background:var(--primary);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px;}
+.logo-text{color:#fff;font-weight:700;font-size:18px;letter-spacing:.5px;}
+nav{flex:1;padding:16px 0;}
+.nav-section{padding:6px 16px;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.35);margin-top:8px;}
+.nav-item{display:flex;align-items:center;gap:12px;padding:10px 20px;cursor:pointer;color:rgba(255,255,255,.65);font-size:14px;transition:all .15s;position:relative;}
+.nav-item:hover{background:rgba(255,255,255,.06);color:#fff;}
+.nav-item.active{background:rgba(29,158,117,.2);color:var(--primary);}
+.nav-item.active::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--primary);border-radius:0 3px 3px 0;}
+.nav-icon{width:18px;text-align:center;font-size:16px;}
+.sidebar-footer{padding:16px 20px;border-top:1px solid rgba(255,255,255,.08);}
+.api-key-input{width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:6px;color:#fff;padding:7px 10px;font-size:12px;outline:none;}
+.api-key-input::placeholder{color:rgba(255,255,255,.3);}
+.api-label{color:rgba(255,255,255,.4);font-size:10px;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;}
+/* MAIN */
+#main{flex:1;overflow-y:auto;display:flex;flex-direction:column;}
+.topbar{background:var(--white);border-bottom:1px solid var(--border);padding:0 32px;height:60px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.page-title{font-size:18px;font-weight:600;}
+.topbar-actions{display:flex;gap:10px;align-items:center;}
+.btn{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .15s;}
+.btn-primary{background:var(--primary);color:#fff;}
+.btn-primary:hover{background:var(--primary-dark);}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}
+.btn-ghost:hover{background:var(--bg);}
+.btn-sm{padding:5px 12px;font-size:12px;}
+.content{flex:1;padding:28px 32px;}
+/* PAGES */
+.page{display:none;}
+.page.active{display:block;}
+/* DASHBOARD */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;}
+.kpi-card{background:var(--white);border-radius:12px;padding:20px;box-shadow:var(--shadow);}
+.kpi-label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;}
+.kpi-value{font-size:28px;font-weight:700;color:var(--text);}
+.kpi-sub{font-size:12px;color:var(--muted);margin-top:4px;}
+.kpi-sub.up{color:var(--primary);}
+.kpi-sub.down{color:var(--red);}
+.dashboard-grid{display:grid;grid-template-columns:2fr 1fr;gap:16px;}
+.card{background:var(--white);border-radius:12px;padding:24px;box-shadow:var(--shadow);}
+.card-title{font-size:14px;font-weight:600;margin-bottom:20px;color:var(--text);}
+/* CHART */
+.chart-wrap{position:relative;height:200px;display:flex;align-items:flex-end;gap:8px;}
+.bar-group{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;}
+.bar{width:100%;border-radius:4px 4px 0 0;transition:opacity .2s;cursor:pointer;position:relative;}
+.bar:hover{opacity:.85;}
+.bar-label{font-size:10px;color:var(--muted);}
+.bar-val{font-size:10px;font-weight:600;color:var(--text);}
+/* RECENT */
+.recent-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);}
+.recent-item:last-child{border:none;}
+.recent-info .ri-num{font-size:13px;font-weight:600;}
+.recent-info .ri-client{font-size:12px;color:var(--muted);}
+.recent-amount{font-size:13px;font-weight:600;}
+/* STATUS */
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;}
+.badge-paid{background:#dcfce7;color:#166534;}
+.badge-pending{background:#fef3c7;color:#92400e;}
+.badge-overdue{background:#fee2e2;color:#991b1b;}
+.badge-draft{background:#f3f4f6;color:#374151;}
+/* INVOICES */
+.invoices-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}
+.search-box{position:relative;}
+.search-box input{padding:8px 12px 8px 34px;border:1px solid var(--border);border-radius:8px;font-size:13px;outline:none;background:var(--white);width:240px;}
+.search-box input:focus{border-color:var(--primary);}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;}
+table{width:100%;border-collapse:collapse;background:var(--white);border-radius:12px;overflow:hidden;box-shadow:var(--shadow);}
+thead th{padding:12px 16px;text-align:left;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);background:var(--bg);border-bottom:1px solid var(--border);}
+tbody td{padding:14px 16px;font-size:13px;border-bottom:1px solid var(--border);}
+tbody tr:last-child td{border:none;}
+tbody tr:hover{background:var(--bg);}
+.invoice-num{font-weight:600;color:var(--primary);}
+/* FORM */
+.form-layout{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;}
+.form-card{background:var(--white);border-radius:12px;padding:28px;box-shadow:var(--shadow);}
+.form-group{margin-bottom:16px;}
+label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;}
+input[type=text],input[type=email],input[type=number],input[type=date],select,textarea{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;outline:none;font-family:inherit;background:var(--white);}
+input:focus,select:focus,textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(29,158,117,.1);}
+textarea{resize:vertical;min-height:70px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.items-table{width:100%;border-collapse:collapse;margin:12px 0;}
+.items-table th{font-size:11px;font-weight:600;color:var(--muted);padding:6px 8px;text-align:left;text-transform:uppercase;}
+.items-table td{padding:6px 4px;}
+.items-table input{padding:7px 8px;font-size:13px;}
+.item-total{font-weight:600;font-size:13px;padding:8px;text-align:right;}
+.add-line-btn{background:none;border:1px dashed var(--border);color:var(--muted);padding:7px 14px;border-radius:6px;cursor:pointer;font-size:12px;width:100%;margin-top:8px;}
+.add-line-btn:hover{border-color:var(--primary);color:var(--primary);}
+.del-btn{background:none;border:none;color:var(--red);cursor:pointer;font-size:16px;padding:4px;}
+.totals-box{background:var(--bg);border-radius:8px;padding:14px;margin-top:12px;}
+.total-row{display:flex;justify-content:space-between;font-size:13px;padding:3px 0;}
+.total-row.grand{font-weight:700;font-size:16px;border-top:1px solid var(--border);margin-top:6px;padding-top:8px;}
+/* PDF PREVIEW */
+.pdf-preview{background:#fff;border:1px solid var(--border);border-radius:8px;padding:28px;font-family:Arial,sans-serif;font-size:12px;line-height:1.5;min-height:500px;box-shadow:var(--shadow);}
+.pdf-header{display:flex;justify-content:space-between;margin-bottom:24px;border-bottom:2px solid var(--primary);padding-bottom:16px;}
+.pdf-company{font-weight:700;font-size:15px;color:var(--primary);}
+.pdf-title{font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px;}
+.pdf-meta{font-size:11px;color:var(--muted);}
+.pdf-parties{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0;}
+.pdf-party-label{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:4px;}
+.pdf-party-name{font-weight:700;font-size:13px;}
+.pdf-items{width:100%;border-collapse:collapse;margin:16px 0;}
+.pdf-items th{background:var(--primary);color:#fff;padding:7px 10px;text-align:left;font-size:11px;}
+.pdf-items td{padding:7px 10px;border-bottom:1px solid #f0f0f0;font-size:12px;}
+.pdf-items tr:nth-child(even) td{background:#f9fafb;}
+.pdf-totals{margin-left:auto;width:220px;margin-top:8px;}
+.pdf-total-row{display:flex;justify-content:space-between;padding:4px 0;font-size:12px;}
+.pdf-total-row.grand{font-weight:700;font-size:14px;border-top:2px solid var(--primary);padding-top:8px;margin-top:4px;color:var(--primary);}
+.pdf-footer{margin-top:24px;padding-top:12px;border-top:1px solid var(--border);font-size:10px;color:var(--muted);text-align:center;}
+/* RELANCES */
+.relance-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;}
+.relance-card{background:var(--white);border-radius:12px;padding:20px;box-shadow:var(--shadow);border-left:4px solid var(--orange);}
+.relance-card.overdue{border-color:var(--red);}
+.relance-invoice{font-weight:600;font-size:14px;}
+.relance-client{font-size:12px;color:var(--muted);}
+.relance-amount{font-size:16px;font-weight:700;margin:8px 0 4px;}
+.relance-days{font-size:12px;}
+.relance-days.orange{color:var(--orange);}
+.relance-days.red{color:var(--red);}
+.relance-actions{display:flex;gap:8px;margin-top:12px;}
+.ai-draft-box{background:var(--primary-light);border:1px solid rgba(29,158,117,.2);border-radius:8px;padding:14px;margin-top:12px;font-size:13px;line-height:1.6;display:none;}
+.ai-draft-box.visible{display:block;}
+.ai-draft-label{font-size:11px;font-weight:600;color:var(--primary);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+/* CHATBOT */
+.chat-layout{display:grid;grid-template-columns:1fr 320px;gap:16px;height:calc(100vh - 148px);}
+.chat-main{background:var(--white);border-radius:12px;box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden;}
+.chat-messages{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:12px;}
+.msg{max-width:78%;padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.5;}
+.msg.user{background:var(--primary);color:#fff;align-self:flex-end;border-bottom-right-radius:4px;}
+.msg.ai{background:var(--bg);color:var(--text);align-self:flex-start;border-bottom-left-radius:4px;}
+.msg.ai.loading{color:var(--muted);font-style:italic;}
+.chat-input-row{padding:16px;border-top:1px solid var(--border);display:flex;gap:10px;}
+.chat-input-row input{flex:1;padding:10px 14px;border:1px solid var(--border);border-radius:8px;font-size:13px;outline:none;}
+.chat-input-row input:focus{border-color:var(--primary);}
+.chat-sidebar{background:var(--white);border-radius:12px;box-shadow:var(--shadow);padding:20px;}
+.chat-context-title{font-size:13px;font-weight:600;margin-bottom:14px;}
+.context-chip{display:inline-flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:12px;margin:4px 4px 0 0;cursor:pointer;}
+.context-chip:hover,.context-chip.active{background:var(--primary-light);border-color:var(--primary);color:var(--primary);}
+.suggestions{margin-top:16px;}
+.sugg-label{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:8px;}
+.sugg-item{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;cursor:pointer;margin-bottom:6px;line-height:1.3;}
+.sugg-item:hover{border-color:var(--primary);color:var(--primary);}
+/* MODALS */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;display:none;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--white);border-radius:16px;padding:28px;width:500px;max-width:94vw;box-shadow:0 20px 60px rgba(0,0,0,.2);}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:16px;}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:20px;}
+/* TOAST */
+#toast{position:fixed;bottom:24px;right:24px;background:#1a1a2e;color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;z-index:999;opacity:0;transform:translateY(8px);transition:all .3s;pointer-events:none;}
+#toast.show{opacity:1;transform:none;}
+/* SCROLLBAR */
+::-webkit-scrollbar{width:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+</style>
+</head>
+<body>
 
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div class="logo">
+    <div class="logo-icon">F</div>
+    <div class="logo-text">Facturo</div>
+  </div>
+  <nav>
+    <div class="nav-section">Principal</div>
+    <div class="nav-item active" data-page="dashboard">
+      <span class="nav-icon">📊</span> Tableau de bord
+    </div>
+    <div class="nav-item" data-page="invoices">
+      <span class="nav-icon">📄</span> Factures
+    </div>
+    <div class="nav-item" data-page="create">
+      <span class="nav-icon">✏️</span> Nouvelle facture
+    </div>
+    <div class="nav-section">IA</div>
+    <div class="nav-item" data-page="relances">
+      <span class="nav-icon">🔔</span> Relances IA
+    </div>
+    <div class="nav-item" data-page="chat">
+      <span class="nav-icon">💬</span> Assistant IA
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="api-label">Clé API Claude</div>
+    <input class="api-key-input" type="password" id="apiKeyInput" placeholder="sk-ant-..."/>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+  <div class="topbar">
+    <div class="page-title" id="pageTitle">Tableau de bord</div>
+    <div class="topbar-actions">
+      <button class="btn btn-ghost btn-sm" onclick="showPage('invoices')">Voir factures</button>
+      <button class="btn btn-primary btn-sm" onclick="showPage('create')">+ Nouvelle facture</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">CA ce mois</div>
+          <div class="kpi-value" id="kpi-ca">0 €</div>
+          <div class="kpi-sub up" id="kpi-ca-sub">↑ +12% vs mois dernier</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">En attente</div>
+          <div class="kpi-value" id="kpi-pending">0 €</div>
+          <div class="kpi-sub" id="kpi-pending-sub">0 factures</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">En retard</div>
+          <div class="kpi-value" id="kpi-overdue" style="color:var(--red)">0 €</div>
+          <div class="kpi-sub down" id="kpi-overdue-sub">0 factures</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Payées (total)</div>
+          <div class="kpi-value" id="kpi-paid">0 €</div>
+          <div class="kpi-sub up" id="kpi-paid-sub">0 factures</div>
+        </div>
+      </div>
+      <div class="dashboard-grid">
+        <div class="card">
+          <div class="card-title">Facturation mensuelle (6 derniers mois)</div>
+          <div class="chart-wrap" id="barChart"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Dernières factures</div>
+          <div id="recentList"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INVOICES -->
+    <div class="page" id="page-invoices">
+      <div class="invoices-header">
+        <div class="search-box">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="searchInput" placeholder="Rechercher..." oninput="filterInvoices()"/>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <select id="filterStatus" onchange="filterInvoices()" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;outline:none;background:var(--white);">
+            <option value="">Tous les statuts</option>
+            <option value="paid">Payée</option>
+            <option value="pending">En attente</option>
+            <option value="overdue">En retard</option>
+            <option value="draft">Brouillon</option>
+          </select>
+          <button class="btn btn-primary" onclick="showPage('create')">+ Nouvelle</button>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Numéro</th><th>Client</th><th>Date</th><th>Échéance</th><th>Montant HT</th><th>TVA</th><th>Total TTC</th><th>Statut</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="invoicesTbody"></tbody>
+      </table>
+    </div>
+
+    <!-- CREATE -->
+    <div class="page" id="page-create">
+      <div class="form-layout">
+        <div class="form-card">
+          <h3 style="margin-bottom:20px;font-size:15px;">Informations de la facture</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Numéro de facture</label>
+              <input type="text" id="f-num" placeholder="FAC-2026-001" oninput="updatePreview()"/>
+            </div>
+            <div class="form-group">
+              <label>Statut</label>
+              <select id="f-status" onchange="updatePreview()">
+                <option value="draft">Brouillon</option>
+                <option value="pending">En attente</option>
+                <option value="paid">Payée</option>
+                <option value="overdue">En retard</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Date d'émission</label>
+              <input type="date" id="f-date" oninput="updatePreview()"/>
+            </div>
+            <div class="form-group">
+              <label>Date d'échéance</label>
+              <input type="date" id="f-due" oninput="updatePreview()"/>
+            </div>
+          </div>
+          <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;"/>
+          <h4 style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Client</h4>
+          <div class="form-group">
+            <label>Nom / Entreprise</label>
+            <input type="text" id="f-client" placeholder="ACME Corp" oninput="updatePreview()"/>
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="f-email" placeholder="contact@client.fr" oninput="updatePreview()"/>
+          </div>
+          <div class="form-group">
+            <label>Adresse</label>
+            <textarea id="f-address" rows="2" placeholder="12 rue de la Paix, 75001 Paris" oninput="updatePreview()"></textarea>
+          </div>
+          <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;"/>
+          <h4 style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Lignes</h4>
+          <table class="items-table">
+            <thead><tr><th>Description</th><th>Qté</th><th>Prix HT</th><th>Total</th><th></th></tr></thead>
+            <tbody id="itemsBody"></tbody>
+          </table>
+          <button class="add-line-btn" onclick="addLine()">+ Ajouter une ligne</button>
+          <div class="form-row" style="margin-top:16px;">
+            <div class="form-group">
+              <label>TVA (%)</label>
+              <input type="number" id="f-tva" value="20" min="0" max="100" oninput="updatePreview()"/>
+            </div>
+            <div class="form-group">
+              <label>Notes</label>
+              <input type="text" id="f-notes" placeholder="Conditions de paiement..." oninput="updatePreview()"/>
+            </div>
+          </div>
+          <div class="totals-box">
+            <div class="total-row"><span>Sous-total HT</span><span id="subtotalDisplay">0,00 €</span></div>
+            <div class="total-row"><span>TVA (<span id="tvaRateDisplay">20</span>%)</span><span id="tvaDisplay">0,00 €</span></div>
+            <div class="total-row grand"><span>Total TTC</span><span id="totalDisplay">0,00 €</span></div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:20px;">
+            <button class="btn btn-ghost" onclick="resetForm()">Annuler</button>
+            <button class="btn btn-primary" onclick="saveInvoice()">💾 Enregistrer</button>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;">Aperçu PDF temps réel</div>
+          <div class="pdf-preview" id="pdfPreview">
+            <div class="pdf-header">
+              <div>
+                <div class="pdf-company">Votre Entreprise</div>
+                <div style="font-size:11px;color:var(--muted);">contact@monentreprise.fr</div>
+              </div>
+              <div style="text-align:right;">
+                <div class="pdf-title" id="pr-num">FACTURE</div>
+                <div class="pdf-meta" id="pr-date">Date: —</div>
+                <div class="pdf-meta" id="pr-due">Échéance: —</div>
+              </div>
+            </div>
+            <div class="pdf-parties">
+              <div>
+                <div class="pdf-party-label">De</div>
+                <div class="pdf-party-name">Votre Entreprise</div>
+                <div style="font-size:11px;">123 rue Exemple, 75000 Paris</div>
+              </div>
+              <div>
+                <div class="pdf-party-label">À</div>
+                <div class="pdf-party-name" id="pr-client">—</div>
+                <div style="font-size:11px;white-space:pre-line;" id="pr-address"></div>
+              </div>
+            </div>
+            <table class="pdf-items">
+              <thead><tr><th>Description</th><th>Qté</th><th>Prix HT</th><th>Total HT</th></tr></thead>
+              <tbody id="pr-items"></tbody>
+            </table>
+            <div class="pdf-totals">
+              <div class="pdf-total-row"><span>Sous-total HT</span><span id="pr-subtotal">0,00 €</span></div>
+              <div class="pdf-total-row"><span>TVA</span><span id="pr-tva">0,00 €</span></div>
+              <div class="pdf-total-row grand"><span>Total TTC</span><span id="pr-total">0,00 €</span></div>
+            </div>
+            <div class="pdf-footer" id="pr-notes">Merci pour votre confiance.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RELANCES -->
+    <div class="page" id="page-relances">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <div>
+          <h3 style="font-size:15px;font-weight:600;">Relances IA</h3>
+          <p style="font-size:13px;color:var(--muted);margin-top:4px;">L'IA rédige des emails de relance personnalisés pour vos impayés.</p>
+        </div>
+      </div>
+      <div class="relance-grid" id="relanceGrid"></div>
+    </div>
+
+    <!-- CHAT -->
+    <div class="page" id="page-chat">
+      <div class="chat-layout">
+        <div class="chat-main">
+          <div class="chat-messages" id="chatMessages">
+            <div class="msg ai">Bonjour ! Je suis votre assistant Facturo. Je peux vous aider à analyser vos factures, rédiger des emails, générer des rapports ou répondre à toute question sur votre activité. Comment puis-je vous aider ?</div>
+          </div>
+          <div class="chat-input-row">
+            <input type="text" id="chatInput" placeholder="Posez votre question..." onkeydown="if(event.key==='Enter')sendChat()"/>
+            <button class="btn btn-primary" onclick="sendChat()">Envoyer</button>
+          </div>
+        </div>
+        <div class="chat-sidebar">
+          <div class="chat-context-title">Contexte injecté</div>
+          <div>
+            <div class="context-chip active" data-ctx="invoices" onclick="toggleCtx(this)">📄 Factures</div>
+            <div class="context-chip" data-ctx="kpis" onclick="toggleCtx(this)">📊 KPIs</div>
+          </div>
+          <div class="suggestions" style="margin-top:20px;">
+            <div class="sugg-label">Suggestions</div>
+            <div class="sugg-item" onclick="askSuggestion(this)">Quelles factures sont en retard ?</div>
+            <div class="sugg-item" onclick="askSuggestion(this)">Quel est mon CA du mois ?</div>
+            <div class="sugg-item" onclick="askSuggestion(this)">Rédige un email de relance professionnel</div>
+            <div class="sugg-item" onclick="askSuggestion(this)">Analyse ma trésorerie</div>
+            <div class="sugg-item" onclick="askSuggestion(this)">Quels sont mes meilleurs clients ?</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<div id="toast"></div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let invoices = JSON.parse(localStorage.getItem('facturo_invoices') || '[]');
+let lineItems = [];
+let activeCtx = new Set(['invoices']);
+let editingId = null;
+
+// ─── SEED DATA ───────────────────────────────────────────────────────────────
+if (!invoices.length) {
+  const seed = [
+    {id:'FAC-2026-001',client:'ACME Corp',email:'billing@acme.com',address:'15 rue de Rivoli\n75001 Paris',date:'2026-03-01',due:'2026-03-31',status:'paid',tva:20,notes:'Paiement à 30 jours',items:[{desc:'Développement web',qty:10,price:850},{desc:'Maintenance',qty:1,price:500}]},
+    {id:'FAC-2026-002',client:'StartupXYZ',email:'cfo@startupxyz.io',address:'8 allée des Startups\n69000 Lyon',date:'2026-03-15',due:'2026-04-14',status:'overdue',tva:20,notes:'',items:[{desc:'Design UI/UX',qty:5,price:700}]},
+    {id:'FAC-2026-003',client:'Groupe Horizon',email:'compta@horizon.fr',address:'42 boulevard Haussmann\n75009 Paris',date:'2026-04-01',due:'2026-05-01',status:'pending',tva:20,notes:'Virement bancaire',items:[{desc:'Conseil stratégique',qty:3,price:1200},{desc:'Rapport',qty:1,price:400}]},
+    {id:'FAC-2026-004',client:'MediCare SA',email:'factures@medicare.fr',address:'22 avenue de la Santé\n33000 Bordeaux',date:'2026-04-05',due:'2026-05-05',status:'pending',tva:0,notes:'Exonéré TVA',items:[{desc:'Formation e-santé',qty:2,price:950}]},
+    {id:'FAC-2026-005',client:'Mairie de Lyon',email:'marches@mairie-lyon.fr',address:'Place de la Comédie\n69000 Lyon',date:'2026-02-10',due:'2026-03-10',status:'paid',tva:20,notes:'',items:[{desc:'Audit numérique',qty:1,price:3200}]},
+    {id:'FAC-2026-006',client:'TechFlow',email:'ap@techflow.dev',address:'Silicon Valley Fr\n75008 Paris',date:'2026-04-10',due:'2026-05-10',status:'draft',tva:20,notes:'',items:[{desc:'API Integration',qty:8,price:620}]},
+  ];
+  seed.forEach(inv => {
+    inv.subtotal = inv.items.reduce((s,i) => s + i.qty*i.price, 0);
+    inv.tvaAmt = inv.subtotal * inv.tva / 100;
+    inv.total = inv.subtotal + inv.tvaAmt;
+  });
+  invoices = seed;
+  saveInvoices();
+}
+
+function saveInvoices() { localStorage.setItem('facturo_invoices', JSON.stringify(invoices)); }
+function fmtMoney(n) { return n.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €'; }
+function fmtDate(d) { if(!d) return '—'; const p=d.split('-'); return `${p[2]}/${p[1]}/${p[0]}`; }
+function apiKey() { return document.getElementById('apiKeyInput').value.trim(); }
+
+// ─── NAVIGATION ──────────────────────────────────────────────────────────────
+const pageTitles = {dashboard:'Tableau de bord',invoices:'Factures',create:'Nouvelle facture',relances:'Relances IA',chat:'Assistant IA'};
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.querySelector(`[data-page="${id}"]`).classList.add('active');
+  document.getElementById('pageTitle').textContent = pageTitles[id];
+  if(id==='dashboard') renderDashboard();
+  if(id==='invoices') renderInvoices(invoices);
+  if(id==='relances') renderRelances();
+  if(id==='create' && !editingId) initForm();
+}
+document.querySelectorAll('.nav-item').forEach(el => {
+  el.addEventListener('click', () => showPage(el.dataset.page));
+});
+
+// ─── DASHBOARD ───────────────────────────────────────────────────────────────
+function renderDashboard() {
+  const now = new Date();
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const ca = invoices.filter(i => i.status==='paid' && i.date.startsWith(thisMonth)).reduce((s,i) => s+i.total,0);
+  const pending = invoices.filter(i => i.status==='pending');
+  const overdue = invoices.filter(i => i.status==='overdue');
+  const allPaid = invoices.filter(i => i.status==='paid');
+  document.getElementById('kpi-ca').textContent = fmtMoney(ca);
+  document.getElementById('kpi-pending').textContent = fmtMoney(pending.reduce((s,i)=>s+i.total,0));
+  document.getElementById('kpi-pending-sub').textContent = `${pending.length} facture${pending.length!==1?'s':''}`;
+  document.getElementById('kpi-overdue').textContent = fmtMoney(overdue.reduce((s,i)=>s+i.total,0));
+  document.getElementById('kpi-overdue-sub').textContent = `${overdue.length} en retard`;
+  document.getElementById('kpi-paid').textContent = fmtMoney(allPaid.reduce((s,i)=>s+i.total,0));
+  document.getElementById('kpi-paid-sub').textContent = `${allPaid.length} facture${allPaid.length!==1?'s':''}`;
+
+  // Bar chart – 6 months
+  const months = [];
+  for(let i=5;i>=0;i--) {
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    const label = d.toLocaleDateString('fr-FR',{month:'short'});
+    const val = invoices.filter(inv => inv.date.startsWith(key)).reduce((s,inv) => s+inv.total,0);
+    months.push({label,val});
+  }
+  const maxVal = Math.max(...months.map(m=>m.val), 1);
+  const chart = document.getElementById('barChart');
+  chart.innerHTML = months.map(m => `
+    <div class="bar-group">
+      <div class="bar-val">${m.val ? (m.val/1000).toFixed(1)+'k' : ''}</div>
+      <div class="bar" style="height:${Math.round((m.val/maxVal)*160)+8}px;background:${m.label===new Date().toLocaleDateString('fr-FR',{month:'short'})?'var(--primary)':'rgba(29,158,117,.25)'};" title="${fmtMoney(m.val)}"></div>
+      <div class="bar-label">${m.label}</div>
+    </div>
+  `).join('');
+
+  // Recent
+  const recent = [...invoices].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);
+  document.getElementById('recentList').innerHTML = recent.map(i => `
+    <div class="recent-item">
+      <div class="recent-info">
+        <div class="ri-num">${i.id}</div>
+        <div class="ri-client">${i.client}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span class="badge badge-${i.status}">${statusLabel(i.status)}</span>
+        <div class="recent-amount">${fmtMoney(i.total)}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ─── STATUS ───────────────────────────────────────────────────────────────────
+function statusLabel(s) { return {paid:'Payée',pending:'En attente',overdue:'En retard',draft:'Brouillon'}[s]||s; }
+
+// ─── INVOICES TABLE ───────────────────────────────────────────────────────────
+function renderInvoices(list) {
+  document.getElementById('invoicesTbody').innerHTML = list.map(i => `
+    <tr>
+      <td><span class="invoice-num" style="cursor:pointer" onclick="editInvoice('${i.id}')">${i.id}</span></td>
+      <td>${i.client}</td>
+      <td>${fmtDate(i.date)}</td>
+      <td>${fmtDate(i.due)}</td>
+      <td>${fmtMoney(i.subtotal)}</td>
+      <td>${i.tva}%</td>
+      <td style="font-weight:600;">${fmtMoney(i.total)}</td>
+      <td><span class="badge badge-${i.status}">${statusLabel(i.status)}</span></td>
+      <td>
+        <button class="btn btn-ghost btn-sm" onclick="editInvoice('${i.id}')">✏️</button>
+        <button class="btn btn-ghost btn-sm" onclick="deleteInvoice('${i.id}')">🗑️</button>
+      </td>
+    </tr>
+  `).join('') || '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--muted);">Aucune facture</td></tr>';
+}
+function filterInvoices() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const st = document.getElementById('filterStatus').value;
+  renderInvoices(invoices.filter(i => (!q || i.client.toLowerCase().includes(q) || i.id.toLowerCase().includes(q)) && (!st || i.status===st)));
+}
+function deleteInvoice(id) {
+  if(!confirm('Supprimer cette facture ?')) return;
+  invoices = invoices.filter(i => i.id!==id);
+  saveInvoices(); renderInvoices(invoices); toast('Facture supprimée');
+}
+function editInvoice(id) {
+  const inv = invoices.find(i => i.id===id);
+  if(!inv) return;
+  editingId = id;
+  document.getElementById('f-num').value = inv.id;
+  document.getElementById('f-status').value = inv.status;
+  document.getElementById('f-date').value = inv.date;
+  document.getElementById('f-due').value = inv.due;
+  document.getElementById('f-client').value = inv.client;
+  document.getElementById('f-email').value = inv.email;
+  document.getElementById('f-address').value = inv.address;
+  document.getElementById('f-tva').value = inv.tva;
+  document.getElementById('f-notes').value = inv.notes;
+  lineItems = inv.items.map(i => ({...i}));
+  renderLines();
+  updatePreview();
+  showPage('create');
+}
+
+// ─── FORM ─────────────────────────────────────────────────────────────────────
+function initForm() {
+  editingId = null;
+  const now = new Date();
+  const due = new Date(now); due.setDate(due.getDate()+30);
+  const nextNum = 'FAC-' + now.getFullYear() + '-' + String(invoices.length+1).padStart(3,'0');
+  document.getElementById('f-num').value = nextNum;
+  document.getElementById('f-status').value = 'draft';
+  document.getElementById('f-date').value = now.toISOString().split('T')[0];
+  document.getElementById('f-due').value = due.toISOString().split('T')[0];
+  document.getElementById('f-client').value = '';
+  document.getElementById('f-email').value = '';
+  document.getElementById('f-address').value = '';
+  document.getElementById('f-tva').value = '20';
+  document.getElementById('f-notes').value = '';
+  lineItems = [{desc:'',qty:1,price:0}];
+  renderLines(); updatePreview();
+}
+function addLine() { lineItems.push({desc:'',qty:1,price:0}); renderLines(); updatePreview(); }
+function removeLine(i) { lineItems.splice(i,1); if(!lineItems.length) lineItems=[{desc:'',qty:1,price:0}]; renderLines(); updatePreview(); }
+function renderLines() {
+  document.getElementById('itemsBody').innerHTML = lineItems.map((l,i) => `
+    <tr>
+      <td><input type="text" value="${l.desc}" placeholder="Description" oninput="lineItems[${i}].desc=this.value;updatePreview()"/></td>
+      <td><input type="number" value="${l.qty}" min="1" style="width:60px" oninput="lineItems[${i}].qty=+this.value;updatePreview()"/></td>
+      <td><input type="number" value="${l.price}" min="0" step="0.01" style="width:90px" oninput="lineItems[${i}].price=+this.value;updatePreview()"/></td>
+      <td class="item-total">${fmtMoney(l.qty*l.price)}</td>
+      <td><button class="del-btn" onclick="removeLine(${i})">×</button></td>
+    </tr>
+  `).join('');
+}
+function getSubtotal() { return lineItems.reduce((s,l) => s+l.qty*l.price, 0); }
+function updatePreview() {
+  const sub = getSubtotal();
+  const tvaRate = +(document.getElementById('f-tva').value||0);
+  const tvaAmt = sub * tvaRate / 100;
+  const total = sub + tvaAmt;
+  document.getElementById('subtotalDisplay').textContent = fmtMoney(sub);
+  document.getElementById('tvaRateDisplay').textContent = tvaRate;
+  document.getElementById('tvaDisplay').textContent = fmtMoney(tvaAmt);
+  document.getElementById('totalDisplay').textContent = fmtMoney(total);
+  // PDF
+  const num = document.getElementById('f-num').value || 'FACTURE';
+  document.getElementById('pr-num').textContent = num;
+  document.getElementById('pr-date').textContent = 'Date : ' + (fmtDate(document.getElementById('f-date').value) || '—');
+  document.getElementById('pr-due').textContent = 'Échéance : ' + (fmtDate(document.getElementById('f-due').value) || '—');
+  document.getElementById('pr-client').textContent = document.getElementById('f-client').value || '—';
+  document.getElementById('pr-address').textContent = document.getElementById('f-address').value;
+  document.getElementById('pr-items').innerHTML = lineItems.map(l => `
+    <tr><td>${l.desc||'—'}</td><td>${l.qty}</td><td>${fmtMoney(l.price)}</td><td>${fmtMoney(l.qty*l.price)}</td></tr>
+  `).join('');
+  document.getElementById('pr-subtotal').textContent = fmtMoney(sub);
+  document.getElementById('pr-tva').textContent = `${fmtMoney(tvaAmt)} (${tvaRate}%)`;
+  document.getElementById('pr-total').textContent = fmtMoney(total);
+  document.getElementById('pr-notes').textContent = document.getElementById('f-notes').value || 'Merci pour votre confiance.';
+}
+function saveInvoice() {
+  const num = document.getElementById('f-num').value.trim();
+  const client = document.getElementById('f-client').value.trim();
+  if(!num || !client) { toast('Numéro et client requis', true); return; }
+  const sub = getSubtotal();
+  const tvaRate = +(document.getElementById('f-tva').value||0);
+  const tvaAmt = sub * tvaRate / 100;
+  const inv = {
+    id: num, client, email: document.getElementById('f-email').value,
+    address: document.getElementById('f-address').value,
+    date: document.getElementById('f-date').value, due: document.getElementById('f-due').value,
+    status: document.getElementById('f-status').value,
+    tva: tvaRate, notes: document.getElementById('f-notes').value,
+    items: lineItems.map(l=>({...l})),
+    subtotal: sub, tvaAmt, total: sub + tvaAmt
+  };
+  if(editingId) {
+    const idx = invoices.findIndex(i => i.id===editingId);
+    invoices[idx] = inv;
+    toast('Facture mise à jour');
+  } else {
+    invoices.unshift(inv);
+    toast('Facture créée');
+  }
+  saveInvoices(); editingId = null; showPage('invoices');
+}
+function resetForm() { editingId = null; initForm(); showPage('invoices'); }
+
+// ─── RELANCES ─────────────────────────────────────────────────────────────────
+function renderRelances() {
+  const targets = invoices.filter(i => i.status==='overdue' || i.status==='pending');
+  const grid = document.getElementById('relanceGrid');
+  if(!targets.length) { grid.innerHTML='<p style="color:var(--muted);font-size:14px;">Aucune facture à relancer.</p>'; return; }
+  const today = new Date();
+  grid.innerHTML = targets.map(inv => {
+    const dueDate = new Date(inv.due);
+    const diff = Math.round((today - dueDate) / 86400000);
+    const isOver = inv.status==='overdue' || diff > 0;
+    const daysText = diff > 0 ? `En retard de ${diff} jour${diff>1?'s':''}` : `Échéance dans ${-diff} jour${-diff>1?'s':''}`;
+    return `
+    <div class="relance-card ${isOver?'overdue':''}">
+      <div style="display:flex;justify-content:space-between;align-items:start;">
+        <div>
+          <div class="relance-invoice">${inv.id}</div>
+          <div class="relance-client">${inv.client} · ${inv.email}</div>
+        </div>
+        <span class="badge badge-${inv.status}">${statusLabel(inv.status)}</span>
+      </div>
+      <div class="relance-amount">${fmtMoney(inv.total)}</div>
+      <div class="relance-days ${isOver?'red':'orange'}">${daysText}</div>
+      <div class="relance-actions">
+        <button class="btn btn-primary btn-sm" onclick="genRelanceIA('${inv.id}',this)">
+          ✨ Générer relance IA
+        </button>
+        <button class="btn btn-ghost btn-sm" onclick="markPaid('${inv.id}')">✓ Marquer payée</button>
+      </div>
+      <div class="ai-draft-box" id="draft-${inv.id}">
+        <div class="ai-draft-label">✨ Brouillon IA</div>
+        <div class="draft-content"></div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button class="btn btn-primary btn-sm" onclick="copyDraft('${inv.id}')">📋 Copier</button>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('draft-${inv.id}').classList.remove('visible')">Fermer</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+async function genRelanceIA(id, btn) {
+  const inv = invoices.find(i => i.id===id);
+  if(!inv) return;
+  const key = apiKey();
+  if(!key) { toast('Clé API Claude requise dans la sidebar', true); return; }
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Génération...';
+  const today = new Date();
+  const dueDate = new Date(inv.due);
+  const diff = Math.round((today - dueDate) / 86400000);
+  const prompt = `Tu es un assistant de facturation professionnel. Rédige un email de relance courtois mais ferme pour la facture suivante :
+- Numéro : ${inv.id}
+- Client : ${inv.client} (${inv.email})
+- Montant : ${fmtMoney(inv.total)}
+- Échéance : ${fmtDate(inv.due)}
+- Retard : ${diff > 0 ? diff + ' jours' : 'pas encore en retard'}
+L'email doit être professionnel, personnalisé, en français. Inclure objet et corps de l'email. Pas de markdown.`;
+  try {
+    const res = await callClaude([{role:'user',content:prompt}]);
+    const box = document.getElementById('draft-'+id);
+    box.querySelector('.draft-content').textContent = res;
+    box.classList.add('visible');
+  } catch(e) { toast('Erreur API : ' + e.message, true); }
+  btn.disabled = false;
+  btn.innerHTML = '✨ Générer relance IA';
+}
+function copyDraft(id) {
+  const txt = document.getElementById('draft-'+id).querySelector('.draft-content').textContent;
+  navigator.clipboard.writeText(txt).then(() => toast('Copié dans le presse-papier'));
+}
+function markPaid(id) {
+  const inv = invoices.find(i => i.id===id);
+  if(inv) { inv.status='paid'; saveInvoices(); renderRelances(); toast(`${id} marquée comme payée`); }
+}
+
+// ─── CHAT ─────────────────────────────────────────────────────────────────────
+function toggleCtx(el) { el.classList.toggle('active'); const c=el.dataset.ctx; if(activeCtx.has(c)) activeCtx.delete(c); else activeCtx.add(c); }
+function askSuggestion(el) { document.getElementById('chatInput').value = el.textContent; sendChat(); }
+function buildContext() {
+  let ctx = '';
+  if(activeCtx.has('invoices')) {
+    ctx += '\n\n[DONNÉES FACTURES]\n' + JSON.stringify(invoices.map(i => ({id:i.id,client:i.client,total:i.total,status:i.status,date:i.date,due:i.due})), null, 2);
+  }
+  if(activeCtx.has('kpis')) {
+    const paid = invoices.filter(i=>i.status==='paid');
+    const pending = invoices.filter(i=>i.status==='pending');
+    const overdue = invoices.filter(i=>i.status==='overdue');
+    ctx += `\n\n[KPIs]\nCA total payé: ${fmtMoney(paid.reduce((s,i)=>s+i.total,0))}\nEn attente: ${fmtMoney(pending.reduce((s,i)=>s+i.total,0))} (${pending.length} factures)\nEn retard: ${fmtMoney(overdue.reduce((s,i)=>s+i.total,0))} (${overdue.length} factures)`;
+  }
+  return ctx;
+}
+async function sendChat() {
+  const input = document.getElementById('chatInput');
+  const msg = input.value.trim();
+  if(!msg) return;
+  const key = apiKey();
+  if(!key) { toast('Clé API Claude requise dans la sidebar', true); return; }
+  input.value = '';
+  appendMsg(msg, 'user');
+  const loadEl = appendMsg('…', 'ai loading');
+  const ctx = buildContext();
+  const systemMsg = `Tu es l'assistant IA de Facturo, une application de facturation. Tu aides les utilisateurs à gérer leurs factures, analyser leur activité, et rédiger des communications professionnelles. Réponds en français, de façon concise et utile.${ctx}`;
+  try {
+    const reply = await callClaude([{role:'user',content:msg}], systemMsg);
+    loadEl.textContent = reply;
+    loadEl.classList.remove('loading');
+  } catch(e) {
+    loadEl.textContent = 'Erreur : ' + e.message;
+    loadEl.classList.remove('loading');
+  }
+  const msgs = document.getElementById('chatMessages');
+  msgs.scrollTop = msgs.scrollHeight;
+}
+function appendMsg(text, cls) {
+  const msgs = document.getElementById('chatMessages');
+  const el = document.createElement('div');
+  el.className = 'msg ' + cls;
+  el.textContent = text;
+  msgs.appendChild(el);
+  msgs.scrollTop = msgs.scrollHeight;
+  return el;
+}
+
+// ─── CLAUDE API ───────────────────────────────────────────────────────────────
+async function callClaude(messages, system) {
+  const body = { model:'claude-sonnet-4-20250514', max_tokens:1024, messages };
+  if(system) body.system = system;
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'x-api-key': apiKey(),
+      'anthropic-version':'2023-06-01',
+      'anthropic-dangerous-direct-browser-access':'true'
+    },
+    body: JSON.stringify(body)
+  });
+  if(!res.ok) {
+    const err = await res.json().catch(()=>({error:{message:res.statusText}}));
+    throw new Error(err.error?.message || res.statusText);
+  }
+  const data = await res.json();
+  return data.content?.[0]?.text || '';
+}
+
+// ─── UTILS ────────────────────────────────────────────────────────────────────
+function toast(msg, err=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = err ? '#ef4444' : '#1a1a2e';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+renderDashboard();
+</script>
+</body>
+</html>
