@@ -164,6 +164,65 @@ textarea{resize:vertical;min-height:70px;}
 ::-webkit-scrollbar{width:6px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+
+/* HAMBURGER */
+.hamburger{display:none;background:none;border:none;cursor:pointer;padding:6px;flex-direction:column;gap:5px;}
+.hamburger span{display:block;width:22px;height:2px;background:var(--text);border-radius:2px;transition:all .2s;}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:49;}
+.sidebar-overlay.open{display:block;}
+
+/* MOBILE TABLE: carte au lieu de lignes */
+.invoice-card{display:none;}
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  body{flex-direction:column;height:auto;min-height:100vh;overflow:auto;}
+  #sidebar{position:fixed;left:-240px;top:0;bottom:0;z-index:50;transition:left .25s;width:240px;height:100%;}
+  #sidebar.open{left:0;}
+  #main{width:100%;overflow-y:auto;}
+  .hamburger{display:flex;}
+  .topbar{padding:0 16px;gap:12px;}
+  .topbar-actions .btn-ghost{display:none;}
+  .topbar-actions .btn-primary{padding:7px 12px;font-size:12px;}
+  .content{padding:16px;}
+  /* KPIs 2 colonnes */
+  .kpi-grid{grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+  .kpi-value{font-size:20px;}
+  /* Dashboard grid colonne unique */
+  .dashboard-grid{grid-template-columns:1fr;}
+  /* Formulaire colonne unique */
+  .form-layout{grid-template-columns:1fr;}
+  .form-row{grid-template-columns:1fr;}
+  /* Relances colonne unique */
+  .relance-grid{grid-template-columns:1fr;}
+  /* Chat colonne unique */
+  .chat-layout{grid-template-columns:1fr;height:auto;}
+  .chat-main{min-height:60vh;}
+  .chat-sidebar{display:none;}
+  /* Table factures → cartes */
+  table thead{display:none;}
+  table,tbody,tr,td{display:block;width:100%;}
+  tbody tr{background:var(--white);border-radius:10px;margin-bottom:10px;padding:14px;box-shadow:var(--shadow);border:1px solid var(--border);}
+  tbody tr:hover{background:var(--white);}
+  tbody td{padding:4px 0;border:none;font-size:13px;display:flex;justify-content:space-between;align-items:center;}
+  tbody td::before{content:attr(data-label);font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
+  tbody td:empty{display:none;}
+  /* Masquer colonnes moins importantes */
+  tbody td[data-label="Montant HT"],tbody td[data-label="TVA"]{display:none;}
+  /* Header factures */
+  .invoices-header{flex-direction:column;align-items:stretch;gap:10px;}
+  .search-box input{width:100%;}
+  .search-box{width:100%;}
+  /* Aperçu PDF masqué sur mobile, accessible via toggle */
+  .pdf-preview-wrap{display:none;}
+  .pdf-preview-wrap.visible{display:block;margin-top:16px;}
+  .toggle-preview-btn{display:flex;width:100%;justify-content:center;align-items:center;gap:8px;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;color:var(--muted);margin-top:8px;}
+}
+@media(max-width:420px){
+  .kpi-grid{grid-template-columns:1fr;}
+  .kpi-card{padding:14px;}
+  .topbar-actions .btn-primary{font-size:11px;padding:6px 10px;}
+}
 </style>
 </head>
 <body>
@@ -198,10 +257,17 @@ textarea{resize:vertical;min-height:70px;}
   </div>
 </div>
 
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
 <!-- MAIN -->
 <div id="main">
   <div class="topbar">
-    <div class="page-title" id="pageTitle">Tableau de bord</div>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <button class="hamburger" id="hamburger" onclick="toggleSidebar()" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="page-title" id="pageTitle">Tableau de bord</div>
+    </div>
     <div class="topbar-actions">
       <button class="btn btn-ghost btn-sm" onclick="showPage('invoices')">Voir factures</button>
       <button class="btn btn-primary btn-sm" onclick="showPage('create')">+ Nouvelle facture</button>
@@ -346,6 +412,8 @@ textarea{resize:vertical;min-height:70px;}
           </div>
         </div>
         <div>
+          <button class="toggle-preview-btn" onclick="togglePreview()">👁 Aperçu PDF</button>
+          <div class="pdf-preview-wrap" id="pdfPreviewWrap">
           <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;">Aperçu PDF temps réel</div>
           <div class="pdf-preview" id="pdfPreview">
             <div class="pdf-header">
@@ -382,6 +450,7 @@ textarea{resize:vertical;min-height:70px;}
             </div>
             <div class="pdf-footer" id="pr-notes">Merci pour votre confiance.</div>
           </div>
+          </div><!-- /pdf-preview-wrap -->
         </div>
       </div>
     </div>
@@ -538,15 +607,15 @@ function statusLabel(s) { return {paid:'Payée',pending:'En attente',overdue:'En
 function renderInvoices(list) {
   document.getElementById('invoicesTbody').innerHTML = list.map(i => `
     <tr>
-      <td><span class="invoice-num" style="cursor:pointer" onclick="editInvoice('${i.id}')">${i.id}</span></td>
-      <td>${i.client}</td>
-      <td>${fmtDate(i.date)}</td>
-      <td>${fmtDate(i.due)}</td>
-      <td>${fmtMoney(i.subtotal)}</td>
-      <td>${i.tva}%</td>
-      <td style="font-weight:600;">${fmtMoney(i.total)}</td>
-      <td><span class="badge badge-${i.status}">${statusLabel(i.status)}</span></td>
-      <td>
+      <td data-label="Numéro"><span class="invoice-num" style="cursor:pointer" onclick="editInvoice('${i.id}')">${i.id}</span></td>
+      <td data-label="Client">${i.client}</td>
+      <td data-label="Date">${fmtDate(i.date)}</td>
+      <td data-label="Échéance">${fmtDate(i.due)}</td>
+      <td data-label="Montant HT">${fmtMoney(i.subtotal)}</td>
+      <td data-label="TVA">${i.tva}%</td>
+      <td data-label="Total TTC" style="font-weight:600;">${fmtMoney(i.total)}</td>
+      <td data-label="Statut"><span class="badge badge-${i.status}">${statusLabel(i.status)}</span></td>
+      <td data-label="">
         <button class="btn btn-ghost btn-sm" onclick="editInvoice('${i.id}')">✏️</button>
         <button class="btn btn-ghost btn-sm" onclick="deleteInvoice('${i.id}')">🗑️</button>
       </td>
@@ -811,6 +880,32 @@ function toast(msg, err=false) {
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2800);
 }
+
+// ─── MOBILE ───────────────────────────────────────────────────────────────────
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('open');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('open');
+}
+// Ferme la sidebar après navigation sur mobile
+document.querySelectorAll('.nav-item').forEach(el => {
+  el.addEventListener('click', () => { if(window.innerWidth < 768) closeSidebar(); });
+});
+function togglePreview() {
+  const wrap = document.getElementById('pdfPreviewWrap');
+  wrap.classList.toggle('visible');
+}
+// Sur desktop, l'aperçu est toujours visible
+function syncPreviewVisibility() {
+  const wrap = document.getElementById('pdfPreviewWrap');
+  if(window.innerWidth >= 768) wrap.classList.add('visible');
+  else wrap.classList.remove('visible');
+}
+window.addEventListener('resize', syncPreviewVisibility);
+syncPreviewVisibility();
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 renderDashboard();
