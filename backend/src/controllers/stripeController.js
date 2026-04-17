@@ -20,8 +20,8 @@ const creerSessionAbonnement = async (req, res) => {
           quantity: 1
         }
       ],
-      success_url: `${process.env.FRONTEND_URL}/abonnement/succes?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.FRONTEND_URL}/abonnement/annule`,
+      success_url: `${process.env.FRONTEND_URL}/success?plan=${plan}&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.FRONTEND_URL}/`,
       metadata: {
         utilisateur_id: req.utilisateur.id,
         plan

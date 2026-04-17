@@ -365,7 +365,7 @@ textarea{resize:vertical;min-height:70px;}
             <li class="no">Relances IA</li>
             <li class="no">Assistant IA</li>
           </ul>
-          <button class="btn btn-ghost" style="width:100%;padding:10px;" onclick="showRegister('starter')">Choisir Starter</button>
+          <button class="btn btn-ghost" style="width:100%;padding:10px;" onclick="choosePlan('starter')">Choisir Starter</button>
         </div>
         <div class="pricing-card featured">
           <div class="pricing-featured-badge">⭐ Le plus populaire</div>
@@ -380,7 +380,7 @@ textarea{resize:vertical;min-height:70px;}
             <li>Relances IA ✨</li>
             <li>Assistant IA ✨</li>
           </ul>
-          <button class="btn btn-primary" style="width:100%;padding:10px;" onclick="showRegister('pro')">Choisir Pro</button>
+          <button class="btn btn-primary" style="width:100%;padding:10px;" onclick="choosePlan('pro')">Choisir Pro</button>
         </div>
         <div class="pricing-card">
           <div class="pricing-plan-name">Business</div>
@@ -394,7 +394,7 @@ textarea{resize:vertical;min-height:70px;}
             <li>Relances IA ✨</li>
             <li>Assistant IA ✨</li>
           </ul>
-          <button class="btn btn-ghost" style="width:100%;padding:10px;" onclick="showRegister('business')">Choisir Business</button>
+          <button class="btn btn-ghost" style="width:100%;padding:10px;" onclick="choosePlan('business')">Choisir Business</button>
         </div>
       </div>
     </section>
@@ -473,6 +473,27 @@ textarea{resize:vertical;min-height:70px;}
     </div>
   </div>
 
+  <!-- SUCCESS -->
+  <div id="screen-success" class="auth-screen">
+    <div class="auth-form-wrap">
+      <div class="auth-card" style="text-align:center;">
+        <div style="font-size:64px;margin-bottom:16px;">🎉</div>
+        <div class="auth-title">Paiement réussi !</div>
+        <div class="auth-sub" id="success-msg">Votre abonnement est maintenant actif.</div>
+        <div style="background:var(--primary-light);border:1px solid rgba(29,158,117,.2);border-radius:10px;padding:16px;margin:20px 0;">
+          <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Plan activé</div>
+          <div style="font-size:22px;font-weight:800;color:var(--primary);" id="success-plan-name">—</div>
+        </div>
+        <button class="btn btn-primary" style="width:100%;padding:12px;font-size:15px;" onclick="goToDashboard()">
+          Accéder à mon dashboard →
+        </button>
+        <div class="auth-divider" style="margin-top:12px;">
+          Un email de confirmation a été envoyé à <strong id="success-email">—</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div><!-- /auth-wrap -->
 
 <!-- ═══════════════════════════ APPLICATION ═════════════════════════════════ -->
@@ -508,12 +529,15 @@ textarea{resize:vertical;min-height:70px;}
       <div class="sidebar-user-name" id="sidebar-user-name">—</div>
       <div class="sidebar-user-email" id="sidebar-user-email">—</div>
     </div>
-    <div style="display:flex;align-items:center;gap:8px;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
       <div class="sidebar-badge plan-badge-starter" id="plan-badge" style="flex:1;">Starter</div>
       <button onclick="doLogout()" title="Se déconnecter"
         style="background:none;border:none;color:rgba(255,255,255,.35);cursor:pointer;font-size:20px;line-height:1;padding:4px;flex-shrink:0;"
         onmouseover="this.style.color='rgba(255,255,255,.7)'" onmouseout="this.style.color='rgba(255,255,255,.35)'">⏏</button>
     </div>
+    <button id="upgrade-btn" onclick="showUpgradeOptions()" style="display:none;width:100%;background:var(--primary);color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:12px;font-weight:600;cursor:pointer;">
+      ⭐ Upgrader mon plan
+    </button>
   </div>
 </div>
 
@@ -780,10 +804,12 @@ textarea{resize:vertical;min-height:70px;}
       <div class="upgrade-plan-btn" onclick="upgradeToP('pro')">
         <div class="upgrade-plan-name">Pro</div>
         <div class="upgrade-plan-price">39€<small>/mois</small></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;">Relances + IA</div>
       </div>
       <div class="upgrade-plan-btn" onclick="upgradeToP('business')">
         <div class="upgrade-plan-name">Business</div>
         <div class="upgrade-plan-price">69€<small>/mois</small></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;">Illimité + IA</div>
       </div>
     </div>
     <button class="btn btn-ghost" style="width:100%;" onclick="closeModal('modal-upgrade')">Plus tard</button>
@@ -849,6 +875,9 @@ function updateSidebarUser() {
       if (existing) existing.remove();
     }
   });
+  // Show/hide upgrade button
+  const upgradeBtn = document.getElementById('upgrade-btn');
+  if (upgradeBtn) upgradeBtn.style.display = currentUser.plan === 'starter' ? 'block' : 'none';
 }
 
 async function doLogin() {
@@ -910,6 +939,14 @@ async function doRegister() {
     if (!res.ok) throw new Error(data.erreur || 'Erreur lors de la création');
     currentUser = { email: data.utilisateur.email, nom: data.utilisateur.nom, plan, token: data.token };
     localStorage.setItem('facturo_session', JSON.stringify(currentUser));
+    // If a paid plan was chosen, redirect to Stripe Checkout
+    const chosenPlan = pendingPlan || plan;
+    if (chosenPlan !== 'starter') {
+      pendingPlan = null;
+      await startStripeCheckout(chosenPlan);
+      return;
+    }
+    pendingPlan = null;
     startApp();
   } catch (err) {
     // Fallback: local registration
@@ -922,6 +959,7 @@ async function doRegister() {
     saveLocalUser({ email, nom, entreprise, plan, passwordHash });
     currentUser = { email, nom, plan, token: 'local' };
     localStorage.setItem('facturo_session', JSON.stringify(currentUser));
+    pendingPlan = null;
     startApp();
   } finally {
     btn.disabled = false; btn.textContent = 'Créer mon compte';
@@ -939,8 +977,79 @@ function doLogout() {
 
 function upgradeToP(plan) {
   closeModal('modal-upgrade');
-  doLogoutSilent();
-  showRegister(plan);
+  if (currentUser && currentUser.token && currentUser.token !== 'local') {
+    startStripeCheckout(plan);
+  } else {
+    pendingPlan = plan;
+    showRegister(plan);
+  }
+}
+
+function showUpgradeOptions() {
+  openModal('modal-upgrade');
+}
+
+// ─── STRIPE ───────────────────────────────────────────────────────────────────
+let pendingPlan = null;
+
+function choosePlan(plan) {
+  if (currentUser && currentUser.token && currentUser.token !== 'local') {
+    // Already logged in with backend account → go straight to checkout
+    startStripeCheckout(plan);
+  } else {
+    // Not logged in → register first, then checkout
+    pendingPlan = plan;
+    showRegister(plan);
+  }
+}
+
+async function startStripeCheckout(plan) {
+  if (!currentUser || currentUser.token === 'local') {
+    toast('Créez un compte pour souscrire à un plan payant.', true);
+    return;
+  }
+  toast('Redirection vers le paiement…');
+  try {
+    const res = await fetch(`${BACKEND}/api/stripe/create-checkout-session`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + currentUser.token
+      },
+      body: JSON.stringify({ plan })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.erreur || 'Erreur Stripe');
+    window.location.href = data.url;
+  } catch (e) {
+    toast('Erreur : ' + e.message, true);
+  }
+}
+
+function handleSuccessPage() {
+  const params = new URLSearchParams(window.location.search);
+  const plan = params.get('plan') || 'pro';
+  const planNames = { starter: 'Starter — 19€/mois', pro: 'Pro — 39€/mois', business: 'Business — 69€/mois' };
+  document.getElementById('success-plan-name').textContent = planNames[plan] || plan;
+  // Update session plan
+  if (currentUser) {
+    currentUser.plan = plan;
+    localStorage.setItem('facturo_session', JSON.stringify(currentUser));
+    document.getElementById('success-email').textContent = currentUser.email;
+    document.getElementById('success-msg').textContent =
+      `Bienvenue sur le plan ${planNames[plan] || plan}. Toutes les fonctionnalités IA sont maintenant disponibles.`;
+  }
+  showAuthScreen('success');
+}
+
+function goToDashboard() {
+  if (currentUser) {
+    // Clean URL
+    window.history.replaceState({}, '', '/');
+    startApp();
+  } else {
+    showAuthScreen('landing');
+  }
 }
 
 function doLogoutSilent() {
@@ -1382,9 +1491,21 @@ window.addEventListener('resize', syncPreviewVisibility);
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 function initAuth() {
+  const path = window.location.pathname;
   const session = JSON.parse(localStorage.getItem('facturo_session') || 'null');
   if (session && session.email) {
     currentUser = session;
+    if (path === '/success') {
+      handleSuccessPage();
+      return;
+    }
+  }
+  if (path === '/success' && !currentUser) {
+    // Payment done but not logged in (e.g. new tab) — just show landing
+    showAuthScreen('landing');
+    return;
+  }
+  if (currentUser) {
     startApp();
   } else {
     showAuthScreen('landing');

@@ -28,6 +28,8 @@ const allowedOrigins = [
   process.env.FRONTEND_URL,
   'http://localhost:5173',
   'https://frontend-two-khaki-14.vercel.app',
+  'https://facturai.tech',
+  'https://www.facturai.tech',
 ].filter(Boolean);
 
 app.use(cors({

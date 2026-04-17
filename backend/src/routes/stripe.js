@@ -17,6 +17,7 @@ router.use(authentifier);
 router.get('/plans', listerPlans);
 router.get('/abonnement', obtenirAbonnement);
 router.post('/creer-session-abonnement', creerSessionAbonnement);
+router.post('/create-checkout-session', creerSessionAbonnement);
 router.post('/portail-client', portalClient);
 
 module.exports = router;
