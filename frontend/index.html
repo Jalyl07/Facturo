@@ -7,7 +7,10 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 :root{--primary:#1D9E75;--primary-dark:#157a5a;--primary-light:#e8f7f2;--bg:#f7f8fa;--sidebar:#111827;--text:#1a1a2e;--muted:#6b7280;--border:#e5e7eb;--white:#fff;--red:#ef4444;--orange:#f59e0b;--blue:#3b82f6;--shadow:0 1px 3px rgba(0,0,0,.08);}
-body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);display:flex;height:100vh;overflow:hidden;}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);}
+/* APP WRAP */
+#app-wrap{display:none;width:100%;height:100vh;overflow:hidden;}
+#app-wrap.show{display:flex;}
 /* SIDEBAR */
 #sidebar{width:240px;background:var(--sidebar);display:flex;flex-direction:column;flex-shrink:0;transition:width .2s;}
 .logo{padding:24px 20px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,.08);}
@@ -20,8 +23,14 @@ nav{flex:1;padding:16px 0;}
 .nav-item.active{background:rgba(29,158,117,.2);color:var(--primary);}
 .nav-item.active::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--primary);border-radius:0 3px 3px 0;}
 .nav-icon{width:18px;text-align:center;font-size:16px;}
+.lock-icon{margin-left:auto;font-size:11px;opacity:.5;}
 .sidebar-footer{padding:16px 20px;border-top:1px solid rgba(255,255,255,.08);}
-.sidebar-badge{background:rgba(29,158,117,.2);color:var(--primary);border-radius:6px;padding:8px 12px;font-size:11px;text-align:center;}
+.sidebar-badge{border-radius:6px;padding:6px 10px;font-size:11px;text-align:center;}
+.plan-badge-starter{background:rgba(107,114,128,.15);color:#9ca3af;}
+.plan-badge-pro{background:rgba(59,130,246,.15);color:#60a5fa;}
+.plan-badge-business{background:rgba(29,158,117,.2);color:var(--primary);}
+.sidebar-user-name{font-size:13px;color:#fff;font-weight:600;margin:2px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sidebar-user-email{font-size:11px;color:rgba(255,255,255,.4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 /* MAIN */
 #main{flex:1;overflow-y:auto;display:flex;flex-direction:column;}
 .topbar{background:var(--white);border-bottom:1px solid var(--border);padding:0 32px;height:60px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
@@ -84,7 +93,7 @@ tbody tr:hover{background:var(--bg);}
 .form-card{background:var(--white);border-radius:12px;padding:28px;box-shadow:var(--shadow);}
 .form-group{margin-bottom:16px;}
 label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;}
-input[type=text],input[type=email],input[type=number],input[type=date],select,textarea{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;outline:none;font-family:inherit;background:var(--white);}
+input[type=text],input[type=email],input[type=number],input[type=date],input[type=password],select,textarea{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;outline:none;font-family:inherit;background:var(--white);}
 input:focus,select:focus,textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(29,158,117,.1);}
 textarea{resize:vertical;min-height:70px;}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
@@ -151,7 +160,6 @@ textarea{resize:vertical;min-height:70px;}
 .sugg-label{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:8px;}
 .sugg-item{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;cursor:pointer;margin-bottom:6px;line-height:1.3;}
 .sugg-item:hover{border-color:var(--primary);color:var(--primary);}
-/* CHAT INLINE SUGGESTIONS */
 .chat-suggestions{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-self:stretch;max-width:520px;}
 .chat-sugg-item{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:12px;line-height:1.4;cursor:pointer;transition:all .15s;color:var(--text);}
 .chat-sugg-item:hover{border-color:var(--primary);color:var(--primary);background:var(--primary-light);}
@@ -169,19 +177,83 @@ textarea{resize:vertical;min-height:70px;}
 ::-webkit-scrollbar{width:6px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
-
 /* HAMBURGER */
 .hamburger{display:none;background:none;border:none;cursor:pointer;padding:6px;flex-direction:column;gap:5px;}
 .hamburger span{display:block;width:22px;height:2px;background:var(--text);border-radius:2px;transition:all .2s;}
 .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:49;}
 .sidebar-overlay.open{display:block;}
 
-/* MOBILE TABLE: carte au lieu de lignes */
-.invoice-card{display:none;}
+/* ─── AUTH ────────────────────────────────────────────────────────────────── */
+#auth-wrap{width:100%;min-height:100vh;overflow-y:auto;background:var(--bg);}
+.auth-screen{display:none;min-height:100vh;flex-direction:column;}
+.auth-screen.active{display:flex;}
+/* LANDING NAV */
+.landing-nav{background:var(--white);border-bottom:1px solid var(--border);padding:0 48px;height:64px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;}
+.landing-logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.landing-logo-icon{width:36px;height:36px;background:var(--primary);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:16px;flex-shrink:0;}
+.landing-logo-text{font-weight:700;font-size:20px;color:var(--text);}
+.landing-nav-actions{display:flex;gap:10px;}
+/* HERO */
+.hero{padding:80px 48px 60px;text-align:center;max-width:900px;margin:0 auto;width:100%;}
+.hero h1{font-size:48px;font-weight:800;line-height:1.1;color:var(--text);margin-bottom:20px;}
+.hero h1 span{color:var(--primary);}
+.hero p{font-size:18px;color:var(--muted);margin-bottom:36px;max-width:600px;margin-left:auto;margin-right:auto;}
+.hero-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+/* FEATURES */
+.features-section{padding:48px;background:var(--white);border-top:1px solid var(--border);}
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;max-width:900px;margin:0 auto;}
+.feature-item{text-align:center;padding:20px;}
+.feature-icon{font-size:32px;margin-bottom:12px;}
+.feature-title{font-size:14px;font-weight:600;margin-bottom:6px;}
+.feature-desc{font-size:13px;color:var(--muted);line-height:1.5;}
+/* PRICING */
+.pricing-section{padding:64px 48px;background:var(--bg);}
+.section-title{text-align:center;font-size:28px;font-weight:700;margin-bottom:8px;}
+.section-sub{text-align:center;color:var(--muted);font-size:15px;margin-bottom:40px;}
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;max-width:920px;margin:0 auto;}
+.pricing-card{border:2px solid var(--border);border-radius:16px;padding:28px;background:var(--white);transition:box-shadow .2s;position:relative;}
+.pricing-card:hover{box-shadow:0 8px 24px rgba(0,0,0,.1);}
+.pricing-card.featured{border-color:var(--primary);}
+.pricing-featured-badge{position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:var(--primary);color:#fff;font-size:11px;font-weight:700;padding:4px 16px;border-radius:20px;white-space:nowrap;}
+.pricing-plan-name{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;}
+.pricing-price{font-size:40px;font-weight:800;color:var(--text);margin-bottom:4px;line-height:1;}
+.pricing-price span{font-size:16px;font-weight:400;color:var(--muted);}
+.pricing-desc{font-size:13px;color:var(--muted);margin-bottom:20px;margin-top:4px;}
+.pricing-features{list-style:none;margin-bottom:24px;}
+.pricing-features li{font-size:13px;color:var(--text);padding:5px 0;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);}
+.pricing-features li:last-child{border:none;}
+.pricing-features li::before{content:'✓';color:var(--primary);font-weight:700;flex-shrink:0;}
+.pricing-features li.no::before{content:'✗';color:#d1d5db;}
+.pricing-features li.no{color:var(--muted);}
+/* AUTH FORMS */
+.auth-form-wrap{display:flex;align-items:center;justify-content:center;flex:1;padding:40px 24px;background:var(--bg);}
+.auth-card{background:var(--white);border-radius:16px;padding:36px;width:420px;max-width:100%;box-shadow:0 4px 24px rgba(0,0,0,.08);}
+.auth-card-wide{width:480px;}
+.auth-logo-row{display:flex;align-items:center;gap:8px;margin-bottom:28px;justify-content:center;}
+.auth-title{font-size:22px;font-weight:700;margin-bottom:4px;}
+.auth-sub{font-size:13px;color:var(--muted);margin-bottom:24px;}
+.auth-link{color:var(--primary);cursor:pointer;font-weight:500;}
+.auth-link:hover{text-decoration:underline;}
+.auth-divider{text-align:center;font-size:13px;color:var(--muted);margin-top:16px;}
+.auth-error{background:#fee2e2;color:#991b1b;border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:14px;display:none;}
+.auth-error.show{display:block;}
+/* UPGRADE MODAL */
+.upgrade-modal{text-align:center;}
+.upgrade-icon{font-size:48px;margin-bottom:16px;}
+.upgrade-title{font-size:20px;font-weight:700;margin-bottom:8px;}
+.upgrade-desc{font-size:14px;color:var(--muted);margin-bottom:24px;line-height:1.6;}
+.upgrade-plans{display:flex;gap:16px;justify-content:center;margin-bottom:20px;}
+.upgrade-plan-btn{border:2px solid var(--border);border-radius:12px;padding:16px 20px;cursor:pointer;background:var(--white);transition:all .2s;text-align:center;min-width:130px;}
+.upgrade-plan-btn:hover{border-color:var(--primary);background:var(--primary-light);}
+.upgrade-plan-name{font-weight:600;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+.upgrade-plan-price{font-size:22px;font-weight:800;color:var(--primary);}
+.upgrade-plan-price small{font-size:12px;font-weight:400;color:var(--muted);}
+/* LANDING FOOTER */
+.landing-footer{background:var(--white);border-top:1px solid var(--border);padding:24px 48px;text-align:center;color:var(--muted);font-size:12px;}
 
 /* ── RESPONSIVE ── */
 @media(max-width:768px){
-  body{flex-direction:column;height:auto;min-height:100vh;overflow:auto;}
+  #app-wrap.show{flex-direction:column;height:auto;min-height:100vh;overflow:auto;}
   #sidebar{position:fixed;left:-240px;top:0;bottom:0;z-index:50;transition:left .25s;width:240px;height:100%;}
   #sidebar.open{left:0;}
   #main{width:100%;overflow-y:auto;}
@@ -190,21 +262,15 @@ textarea{resize:vertical;min-height:70px;}
   .topbar-actions .btn-ghost{display:none;}
   .topbar-actions .btn-primary{padding:7px 12px;font-size:12px;}
   .content{padding:16px;}
-  /* KPIs 2 colonnes */
   .kpi-grid{grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
   .kpi-value{font-size:20px;}
-  /* Dashboard grid colonne unique */
   .dashboard-grid{grid-template-columns:1fr;}
-  /* Formulaire colonne unique */
   .form-layout{grid-template-columns:1fr;}
   .form-row{grid-template-columns:1fr;}
-  /* Relances colonne unique */
   .relance-grid{grid-template-columns:1fr;}
-  /* Chat colonne unique */
   .chat-layout{grid-template-columns:1fr;height:auto;}
   .chat-main{min-height:60vh;}
   .chat-sidebar{display:none;}
-  /* Table factures → cartes */
   table thead{display:none;}
   table,tbody,tr,td{display:block;width:100%;}
   tbody tr{background:var(--white);border-radius:10px;margin-bottom:10px;padding:14px;box-shadow:var(--shadow);border:1px solid var(--border);}
@@ -212,25 +278,205 @@ textarea{resize:vertical;min-height:70px;}
   tbody td{padding:4px 0;border:none;font-size:13px;display:flex;justify-content:space-between;align-items:center;}
   tbody td::before{content:attr(data-label);font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
   tbody td:empty{display:none;}
-  /* Masquer colonnes moins importantes */
   tbody td[data-label="Montant HT"],tbody td[data-label="TVA"]{display:none;}
-  /* Header factures */
   .invoices-header{flex-direction:column;align-items:stretch;gap:10px;}
   .search-box input{width:100%;}
   .search-box{width:100%;}
-  /* Aperçu PDF masqué sur mobile, accessible via toggle */
   .pdf-preview-wrap{display:none;}
   .pdf-preview-wrap.visible{display:block;margin-top:16px;}
   .toggle-preview-btn{display:flex;width:100%;justify-content:center;align-items:center;gap:8px;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:13px;color:var(--muted);margin-top:8px;}
+  /* Landing responsive */
+  .landing-nav{padding:0 16px;}
+  .hero{padding:48px 20px 40px;}
+  .hero h1{font-size:30px;}
+  .hero p{font-size:15px;}
+  .pricing-grid{grid-template-columns:1fr;}
+  .pricing-section{padding:40px 20px;}
+  .features-grid{grid-template-columns:1fr;}
+  .features-section{padding:40px 20px;}
+  .upgrade-plans{flex-direction:column;align-items:center;}
 }
 @media(max-width:420px){
   .kpi-grid{grid-template-columns:1fr;}
   .kpi-card{padding:14px;}
-  .topbar-actions .btn-primary{font-size:11px;padding:6px 10px;}
 }
 </style>
 </head>
 <body>
+
+<!-- ═══════════════════════════ AUTH SCREENS ════════════════════════════════ -->
+<div id="auth-wrap">
+
+  <!-- LANDING -->
+  <div id="screen-landing" class="auth-screen active">
+    <nav class="landing-nav">
+      <div class="landing-logo">
+        <div class="landing-logo-icon">F</div>
+        <div class="landing-logo-text">FacturAI</div>
+      </div>
+      <div class="landing-nav-actions">
+        <button class="btn btn-ghost" onclick="showAuthScreen('login')">Se connecter</button>
+        <button class="btn btn-primary" onclick="showAuthScreen('register')">Commencer gratuitement</button>
+      </div>
+    </nav>
+
+    <section class="hero">
+      <h1>La facturation <span>intelligente</span><br/>propulsée par l'IA</h1>
+      <p>Créez des factures professionnelles, automatisez vos relances et analysez votre activité avec Claude AI.</p>
+      <div class="hero-actions">
+        <button class="btn btn-primary" style="padding:13px 32px;font-size:15px;" onclick="showAuthScreen('register')">Commencer gratuitement →</button>
+        <button class="btn btn-ghost" style="padding:13px 32px;font-size:15px;" onclick="showAuthScreen('login')">Se connecter</button>
+      </div>
+    </section>
+
+    <section class="features-section">
+      <div class="features-grid">
+        <div class="feature-item">
+          <div class="feature-icon">📄</div>
+          <div class="feature-title">Factures professionnelles</div>
+          <div class="feature-desc">Créez et gérez vos factures avec aperçu PDF en temps réel.</div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">✨</div>
+          <div class="feature-title">Relances IA</div>
+          <div class="feature-desc">L'IA rédige des emails de relance personnalisés pour vos impayés.</div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">💬</div>
+          <div class="feature-title">Assistant IA</div>
+          <div class="feature-desc">Analysez votre activité et obtenez des conseils en langage naturel.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="pricing-section">
+      <div class="section-title">Tarifs simples et transparents</div>
+      <div class="section-sub">Sans engagement · Changez de plan à tout moment</div>
+      <div class="pricing-grid">
+        <div class="pricing-card">
+          <div class="pricing-plan-name">Starter</div>
+          <div class="pricing-price">19€<span>/mois</span></div>
+          <div class="pricing-desc">Idéal pour les indépendants</div>
+          <ul class="pricing-features">
+            <li>20 factures / mois</li>
+            <li>10 clients</li>
+            <li>Aperçu PDF temps réel</li>
+            <li>Tableau de bord</li>
+            <li class="no">Relances IA</li>
+            <li class="no">Assistant IA</li>
+          </ul>
+          <button class="btn btn-ghost" style="width:100%;padding:10px;" onclick="showRegister('starter')">Choisir Starter</button>
+        </div>
+        <div class="pricing-card featured">
+          <div class="pricing-featured-badge">⭐ Le plus populaire</div>
+          <div class="pricing-plan-name">Pro</div>
+          <div class="pricing-price">39€<span>/mois</span></div>
+          <div class="pricing-desc">Pour les freelances actifs</div>
+          <ul class="pricing-features">
+            <li>100 factures / mois</li>
+            <li>50 clients</li>
+            <li>Aperçu PDF temps réel</li>
+            <li>Tableau de bord</li>
+            <li>Relances IA ✨</li>
+            <li>Assistant IA ✨</li>
+          </ul>
+          <button class="btn btn-primary" style="width:100%;padding:10px;" onclick="showRegister('pro')">Choisir Pro</button>
+        </div>
+        <div class="pricing-card">
+          <div class="pricing-plan-name">Business</div>
+          <div class="pricing-price">69€<span>/mois</span></div>
+          <div class="pricing-desc">Pour les PME en croissance</div>
+          <ul class="pricing-features">
+            <li>Factures illimitées</li>
+            <li>Clients illimités</li>
+            <li>Aperçu PDF temps réel</li>
+            <li>Tableau de bord</li>
+            <li>Relances IA ✨</li>
+            <li>Assistant IA ✨</li>
+          </ul>
+          <button class="btn btn-ghost" style="width:100%;padding:10px;" onclick="showRegister('business')">Choisir Business</button>
+        </div>
+      </div>
+    </section>
+
+    <footer class="landing-footer">© 2026 FacturAI · IA propulsée par Claude · <a class="auth-link" onclick="showAuthScreen('login')">Connexion</a></footer>
+  </div>
+
+  <!-- LOGIN -->
+  <div id="screen-login" class="auth-screen">
+    <div class="auth-form-wrap">
+      <div class="auth-card">
+        <div class="auth-logo-row">
+          <div class="landing-logo-icon">F</div>
+          <span style="font-weight:700;font-size:20px;">FacturAI</span>
+        </div>
+        <div class="auth-title">Bienvenue</div>
+        <div class="auth-sub">Connectez-vous à votre compte</div>
+        <div class="auth-error" id="login-error"></div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="login-email" placeholder="vous@entreprise.fr" autocomplete="email"/>
+        </div>
+        <div class="form-group">
+          <label>Mot de passe</label>
+          <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password"
+            onkeydown="if(event.key==='Enter')doLogin()"/>
+        </div>
+        <button class="btn btn-primary" style="width:100%;padding:11px;font-size:14px;margin-top:4px;" id="login-btn" onclick="doLogin()">Se connecter</button>
+        <div class="auth-divider">Pas de compte ? <a class="auth-link" onclick="showAuthScreen('register')">S'inscrire gratuitement</a></div>
+        <div class="auth-divider" style="margin-top:8px;"><a class="auth-link" onclick="showAuthScreen('landing')">← Retour à l'accueil</a></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- REGISTER -->
+  <div id="screen-register" class="auth-screen">
+    <div class="auth-form-wrap">
+      <div class="auth-card auth-card-wide">
+        <div class="auth-logo-row">
+          <div class="landing-logo-icon">F</div>
+          <span style="font-weight:700;font-size:20px;">FacturAI</span>
+        </div>
+        <div class="auth-title">Créer un compte</div>
+        <div class="auth-sub">Commencez à facturer intelligemment</div>
+        <div class="auth-error" id="register-error"></div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Nom complet</label>
+            <input type="text" id="reg-nom" placeholder="Jean Dupont" autocomplete="name"/>
+          </div>
+          <div class="form-group">
+            <label>Entreprise <span style="font-weight:400;text-transform:none;font-size:10px;">(optionnel)</span></label>
+            <input type="text" id="reg-entreprise" placeholder="Mon Entreprise" autocomplete="organization"/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="reg-email" placeholder="vous@entreprise.fr" autocomplete="email"/>
+        </div>
+        <div class="form-group">
+          <label>Mot de passe</label>
+          <input type="password" id="reg-password" placeholder="8 caractères min · 1 majuscule · 1 chiffre" autocomplete="new-password"/>
+        </div>
+        <div class="form-group">
+          <label>Plan</label>
+          <select id="reg-plan">
+            <option value="starter">Starter — 19€/mois (factures basiques)</option>
+            <option value="pro" selected>Pro — 39€/mois (+ Relances IA · Assistant IA)</option>
+            <option value="business">Business — 69€/mois (illimité + IA)</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" style="width:100%;padding:11px;font-size:14px;margin-top:4px;" id="register-btn" onclick="doRegister()">Créer mon compte</button>
+        <div class="auth-divider">Déjà un compte ? <a class="auth-link" onclick="showAuthScreen('login')">Se connecter</a></div>
+        <div class="auth-divider" style="margin-top:8px;"><a class="auth-link" onclick="showAuthScreen('landing')">← Retour à l'accueil</a></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /auth-wrap -->
+
+<!-- ═══════════════════════════ APPLICATION ═════════════════════════════════ -->
+<div id="app-wrap">
 
 <!-- SIDEBAR -->
 <div id="sidebar">
@@ -250,15 +496,24 @@ textarea{resize:vertical;min-height:70px;}
       <span class="nav-icon">✏️</span> Nouvelle facture
     </div>
     <div class="nav-section">IA</div>
-    <div class="nav-item" data-page="relances">
+    <div class="nav-item" data-page="relances" id="nav-relances">
       <span class="nav-icon">🔔</span> Relances IA
     </div>
-    <div class="nav-item" data-page="chat">
+    <div class="nav-item" data-page="chat" id="nav-chat">
       <span class="nav-icon">💬</span> Assistant IA
     </div>
   </nav>
   <div class="sidebar-footer">
-    <div class="sidebar-badge">✨ IA propulsée par Claude</div>
+    <div style="margin-bottom:10px;">
+      <div class="sidebar-user-name" id="sidebar-user-name">—</div>
+      <div class="sidebar-user-email" id="sidebar-user-email">—</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div class="sidebar-badge plan-badge-starter" id="plan-badge" style="flex:1;">Starter</div>
+      <button onclick="doLogout()" title="Se déconnecter"
+        style="background:none;border:none;color:rgba(255,255,255,.35);cursor:pointer;font-size:20px;line-height:1;padding:4px;flex-shrink:0;"
+        onmouseover="this.style.color='rgba(255,255,255,.7)'" onmouseout="this.style.color='rgba(255,255,255,.35)'">⏏</button>
+    </div>
   </div>
 </div>
 
@@ -419,43 +674,42 @@ textarea{resize:vertical;min-height:70px;}
         <div>
           <button class="toggle-preview-btn" onclick="togglePreview()">👁 Aperçu PDF</button>
           <div class="pdf-preview-wrap" id="pdfPreviewWrap">
-          <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;">Aperçu PDF temps réel</div>
-          <div class="pdf-preview" id="pdfPreview">
-            <div class="pdf-header">
-              <div>
-                <div class="pdf-company">Votre Entreprise</div>
-                <div style="font-size:11px;color:var(--muted);">contact@monentreprise.fr</div>
+            <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px;">Aperçu PDF temps réel</div>
+            <div class="pdf-preview" id="pdfPreview">
+              <div class="pdf-header">
+                <div>
+                  <div class="pdf-company" id="pr-company">Votre Entreprise</div>
+                  <div style="font-size:11px;color:var(--muted);" id="pr-company-email">contact@monentreprise.fr</div>
+                </div>
+                <div style="text-align:right;">
+                  <div class="pdf-title" id="pr-num">FACTURE</div>
+                  <div class="pdf-meta" id="pr-date">Date: —</div>
+                  <div class="pdf-meta" id="pr-due">Échéance: —</div>
+                </div>
               </div>
-              <div style="text-align:right;">
-                <div class="pdf-title" id="pr-num">FACTURE</div>
-                <div class="pdf-meta" id="pr-date">Date: —</div>
-                <div class="pdf-meta" id="pr-due">Échéance: —</div>
+              <div class="pdf-parties">
+                <div>
+                  <div class="pdf-party-label">De</div>
+                  <div class="pdf-party-name" id="pr-from-name">Votre Entreprise</div>
+                </div>
+                <div>
+                  <div class="pdf-party-label">À</div>
+                  <div class="pdf-party-name" id="pr-client">—</div>
+                  <div style="font-size:11px;white-space:pre-line;" id="pr-address"></div>
+                </div>
               </div>
+              <table class="pdf-items">
+                <thead><tr><th>Description</th><th>Qté</th><th>Prix HT</th><th>Total HT</th></tr></thead>
+                <tbody id="pr-items"></tbody>
+              </table>
+              <div class="pdf-totals">
+                <div class="pdf-total-row"><span>Sous-total HT</span><span id="pr-subtotal">0,00 €</span></div>
+                <div class="pdf-total-row"><span>TVA</span><span id="pr-tva">0,00 €</span></div>
+                <div class="pdf-total-row grand"><span>Total TTC</span><span id="pr-total">0,00 €</span></div>
+              </div>
+              <div class="pdf-footer" id="pr-notes">Merci pour votre confiance.</div>
             </div>
-            <div class="pdf-parties">
-              <div>
-                <div class="pdf-party-label">De</div>
-                <div class="pdf-party-name">Votre Entreprise</div>
-                <div style="font-size:11px;">123 rue Exemple, 75000 Paris</div>
-              </div>
-              <div>
-                <div class="pdf-party-label">À</div>
-                <div class="pdf-party-name" id="pr-client">—</div>
-                <div style="font-size:11px;white-space:pre-line;" id="pr-address"></div>
-              </div>
-            </div>
-            <table class="pdf-items">
-              <thead><tr><th>Description</th><th>Qté</th><th>Prix HT</th><th>Total HT</th></tr></thead>
-              <tbody id="pr-items"></tbody>
-            </table>
-            <div class="pdf-totals">
-              <div class="pdf-total-row"><span>Sous-total HT</span><span id="pr-subtotal">0,00 €</span></div>
-              <div class="pdf-total-row"><span>TVA</span><span id="pr-tva">0,00 €</span></div>
-              <div class="pdf-total-row grand"><span>Total TTC</span><span id="pr-total">0,00 €</span></div>
-            </div>
-            <div class="pdf-footer" id="pr-notes">Merci pour votre confiance.</div>
           </div>
-          </div><!-- /pdf-preview-wrap -->
         </div>
       </div>
     </div>
@@ -511,17 +765,225 @@ textarea{resize:vertical;min-height:70px;}
   </div><!-- /content -->
 </div><!-- /main -->
 
+</div><!-- /app-wrap -->
+
+<!-- UPGRADE MODAL -->
+<div class="modal-overlay" id="modal-upgrade">
+  <div class="modal upgrade-modal">
+    <div class="upgrade-icon">🔒</div>
+    <div class="upgrade-title">Fonctionnalité Pro</div>
+    <div class="upgrade-desc">
+      Les <strong>Relances IA</strong> et l'<strong>Assistant IA</strong> sont réservés aux plans <strong>Pro</strong> et <strong>Business</strong>.<br/>
+      Passez à un plan supérieur pour accéder à toutes les fonctionnalités IA.
+    </div>
+    <div class="upgrade-plans">
+      <div class="upgrade-plan-btn" onclick="upgradeToP('pro')">
+        <div class="upgrade-plan-name">Pro</div>
+        <div class="upgrade-plan-price">39€<small>/mois</small></div>
+      </div>
+      <div class="upgrade-plan-btn" onclick="upgradeToP('business')">
+        <div class="upgrade-plan-name">Business</div>
+        <div class="upgrade-plan-price">69€<small>/mois</small></div>
+      </div>
+    </div>
+    <button class="btn btn-ghost" style="width:100%;" onclick="closeModal('modal-upgrade')">Plus tard</button>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
-// ─── STATE ───────────────────────────────────────────────────────────────────
-let invoices = JSON.parse(localStorage.getItem('facturo_invoices') || '[]');
+// ─── BACKEND URL ──────────────────────────────────────────────────────────────
+const BACKEND = 'https://facturo-production-2dbb.up.railway.app';
+
+// ─── AUTH ─────────────────────────────────────────────────────────────────────
+let currentUser = null;
+
+function showAuthScreen(name) {
+  document.getElementById('auth-wrap').style.display = '';
+  document.getElementById('app-wrap').classList.remove('show');
+  document.querySelectorAll('.auth-screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+}
+
+function showRegister(plan) {
+  showAuthScreen('register');
+  if (plan) document.getElementById('reg-plan').value = plan;
+}
+
+function startApp() {
+  document.getElementById('auth-wrap').style.display = 'none';
+  document.getElementById('app-wrap').classList.add('show');
+  // Load this user's invoices
+  const stored = localStorage.getItem('facturo_invoices_' + currentUser.email);
+  invoices = stored ? JSON.parse(stored) : [];
+  if (!invoices.length) seedInvoices();
+  updateSidebarUser();
+  renderDashboard();
+}
+
+function updateSidebarUser() {
+  const nameEl = document.getElementById('sidebar-user-name');
+  const emailEl = document.getElementById('sidebar-user-email');
+  const badge = document.getElementById('plan-badge');
+  if (nameEl) nameEl.textContent = currentUser.nom || currentUser.email;
+  if (emailEl) emailEl.textContent = currentUser.email;
+  if (badge) {
+    const planLabels = { starter: '⬜ Plan Starter', pro: '⭐ Plan Pro', business: '✨ Plan Business' };
+    badge.textContent = planLabels[currentUser.plan] || '⬜ Plan Starter';
+    badge.className = 'sidebar-badge plan-badge-' + (currentUser.plan || 'starter');
+  }
+  // Lock icon on AI nav items for starter users
+  ['nav-relances', 'nav-chat'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const existing = el.querySelector('.lock-icon');
+    if (currentUser.plan === 'starter') {
+      if (!existing) {
+        const lock = document.createElement('span');
+        lock.className = 'lock-icon';
+        lock.textContent = '🔒';
+        el.appendChild(lock);
+      }
+    } else {
+      if (existing) existing.remove();
+    }
+  });
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  const btn = document.getElementById('login-btn');
+  errEl.classList.remove('show');
+  if (!email || !password) { errEl.textContent = 'Email et mot de passe requis.'; errEl.classList.add('show'); return; }
+  btn.disabled = true; btn.textContent = 'Connexion…';
+  try {
+    const res = await fetch(`${BACKEND}/api/auth/login`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, motDePasse: password })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.erreur || 'Erreur de connexion');
+    currentUser = { email: data.utilisateur.email, nom: data.utilisateur.nom, plan: data.utilisateur.plan || 'starter', token: data.token };
+    localStorage.setItem('facturo_session', JSON.stringify(currentUser));
+    startApp();
+  } catch (err) {
+    // Fallback: local auth
+    const localUser = getLocalUser(email);
+    if (localUser) {
+      const hash = await simpleHash(password);
+      if (hash === localUser.passwordHash) {
+        currentUser = { email: localUser.email, nom: localUser.nom, plan: localUser.plan, token: 'local' };
+        localStorage.setItem('facturo_session', JSON.stringify(currentUser));
+        startApp(); return;
+      }
+    }
+    errEl.textContent = err.message.includes('fetch') ? 'Email ou mot de passe incorrect.' : (err.message || 'Email ou mot de passe incorrect.');
+    errEl.classList.add('show');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Se connecter';
+  }
+}
+
+async function doRegister() {
+  const nom = document.getElementById('reg-nom').value.trim();
+  const entreprise = document.getElementById('reg-entreprise').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const password = document.getElementById('reg-password').value;
+  const plan = document.getElementById('reg-plan').value;
+  const errEl = document.getElementById('register-error');
+  const btn = document.getElementById('register-btn');
+  errEl.classList.remove('show');
+  if (!nom || !email || !password) { errEl.textContent = 'Nom, email et mot de passe sont requis.'; errEl.classList.add('show'); return; }
+  if (password.length < 8) { errEl.textContent = 'Mot de passe : 8 caractères minimum.'; errEl.classList.add('show'); return; }
+  if (!/[A-Z]/.test(password)) { errEl.textContent = 'Mot de passe : au moins une majuscule.'; errEl.classList.add('show'); return; }
+  if (!/[0-9]/.test(password)) { errEl.textContent = 'Mot de passe : au moins un chiffre.'; errEl.classList.add('show'); return; }
+  btn.disabled = true; btn.textContent = 'Création en cours…';
+  try {
+    const res = await fetch(`${BACKEND}/api/auth/register`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nom, nomEntreprise: entreprise || undefined, email, motDePasse: password })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.erreur || 'Erreur lors de la création');
+    currentUser = { email: data.utilisateur.email, nom: data.utilisateur.nom, plan, token: data.token };
+    localStorage.setItem('facturo_session', JSON.stringify(currentUser));
+    startApp();
+  } catch (err) {
+    // Fallback: local registration
+    if (getLocalUser(email)) {
+      errEl.textContent = 'Cet email est déjà utilisé.';
+      errEl.classList.add('show');
+      btn.disabled = false; btn.textContent = 'Créer mon compte'; return;
+    }
+    const passwordHash = await simpleHash(password);
+    saveLocalUser({ email, nom, entreprise, plan, passwordHash });
+    currentUser = { email, nom, plan, token: 'local' };
+    localStorage.setItem('facturo_session', JSON.stringify(currentUser));
+    startApp();
+  } finally {
+    btn.disabled = false; btn.textContent = 'Créer mon compte';
+  }
+}
+
+function doLogout() {
+  if (!confirm('Se déconnecter ?')) return;
+  currentUser = null;
+  localStorage.removeItem('facturo_session');
+  invoices = [];
+  editingId = null;
+  showAuthScreen('landing');
+}
+
+function upgradeToP(plan) {
+  closeModal('modal-upgrade');
+  doLogoutSilent();
+  showRegister(plan);
+}
+
+function doLogoutSilent() {
+  currentUser = null;
+  localStorage.removeItem('facturo_session');
+  invoices = [];
+}
+
+// Local auth helpers
+function getLocalUser(email) {
+  const users = JSON.parse(localStorage.getItem('facturo_local_users') || '[]');
+  return users.find(u => u.email === email) || null;
+}
+function saveLocalUser(user) {
+  const users = JSON.parse(localStorage.getItem('facturo_local_users') || '[]');
+  users.push(user);
+  localStorage.setItem('facturo_local_users', JSON.stringify(users));
+}
+async function simpleHash(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+// ─── PLAN GATING ──────────────────────────────────────────────────────────────
+function checkAIPlan() {
+  if (!currentUser || currentUser.plan === 'starter') {
+    openModal('modal-upgrade');
+    return false;
+  }
+  return true;
+}
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let invoices = [];
 let lineItems = [];
 let activeCtx = new Set(['invoices']);
 let editingId = null;
 
-// ─── SEED DATA ───────────────────────────────────────────────────────────────
-if (!invoices.length) {
+function saveInvoices() {
+  if (currentUser) localStorage.setItem('facturo_invoices_' + currentUser.email, JSON.stringify(invoices));
+}
+
+function seedInvoices() {
   const seed = [
     {id:'FAC-2026-001',client:'ACME Corp',email:'billing@acme.com',address:'15 rue de Rivoli\n75001 Paris',date:'2026-03-01',due:'2026-03-31',status:'paid',tva:20,notes:'Paiement à 30 jours',items:[{desc:'Développement web',qty:10,price:850},{desc:'Maintenance',qty:1,price:500}]},
     {id:'FAC-2026-002',client:'StartupXYZ',email:'cfo@startupxyz.io',address:'8 allée des Startups\n69000 Lyon',date:'2026-03-15',due:'2026-04-14',status:'overdue',tva:20,notes:'',items:[{desc:'Design UI/UX',qty:5,price:700}]},
@@ -539,23 +1001,22 @@ if (!invoices.length) {
   saveInvoices();
 }
 
-function saveInvoices() { localStorage.setItem('facturo_invoices', JSON.stringify(invoices)); }
 function fmtMoney(n) { return n.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €'; }
 function fmtDate(d) { if(!d) return '—'; const p=d.split('-'); return `${p[2]}/${p[1]}/${p[0]}`; }
-
 
 // ─── NAVIGATION ──────────────────────────────────────────────────────────────
 const pageTitles = {dashboard:'Tableau de bord',invoices:'Factures',create:'Nouvelle facture',relances:'Relances IA',chat:'Assistant IA'};
 function showPage(id) {
+  if ((id === 'relances' || id === 'chat') && !checkAIPlan()) return;
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('page-'+id).classList.add('active');
+  document.getElementById('page-' + id).classList.add('active');
   document.querySelector(`[data-page="${id}"]`).classList.add('active');
   document.getElementById('pageTitle').textContent = pageTitles[id];
-  if(id==='dashboard') renderDashboard();
-  if(id==='invoices') renderInvoices(invoices);
-  if(id==='relances') renderRelances();
-  if(id==='create' && !editingId) initForm();
+  if (id === 'dashboard') renderDashboard();
+  if (id === 'invoices') renderInvoices(invoices);
+  if (id === 'relances') renderRelances();
+  if (id === 'create' && !editingId) initForm();
 }
 document.querySelectorAll('.nav-item').forEach(el => {
   el.addEventListener('click', () => showPage(el.dataset.page));
@@ -576,10 +1037,8 @@ function renderDashboard() {
   document.getElementById('kpi-overdue-sub').textContent = `${overdue.length} en retard`;
   document.getElementById('kpi-paid').textContent = fmtMoney(allPaid.reduce((s,i)=>s+i.total,0));
   document.getElementById('kpi-paid-sub').textContent = `${allPaid.length} facture${allPaid.length!==1?'s':''}`;
-
-  // Bar chart – 6 months
   const months = [];
-  for(let i=5;i>=0;i--) {
+  for (let i=5;i>=0;i--) {
     const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
     const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
     const label = d.toLocaleDateString('fr-FR',{month:'short'});
@@ -595,8 +1054,6 @@ function renderDashboard() {
       <div class="bar-label">${m.label}</div>
     </div>
   `).join('');
-
-  // Recent
   const recent = [...invoices].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);
   document.getElementById('recentList').innerHTML = recent.map(i => `
     <div class="recent-item">
@@ -640,13 +1097,13 @@ function filterInvoices() {
   renderInvoices(invoices.filter(i => (!q || i.client.toLowerCase().includes(q) || i.id.toLowerCase().includes(q)) && (!st || i.status===st)));
 }
 function deleteInvoice(id) {
-  if(!confirm('Supprimer cette facture ?')) return;
+  if (!confirm('Supprimer cette facture ?')) return;
   invoices = invoices.filter(i => i.id!==id);
   saveInvoices(); renderInvoices(invoices); toast('Facture supprimée');
 }
 function editInvoice(id) {
   const inv = invoices.find(i => i.id===id);
-  if(!inv) return;
+  if (!inv) return;
   editingId = id;
   document.getElementById('f-num').value = inv.id;
   document.getElementById('f-status').value = inv.status;
@@ -658,9 +1115,7 @@ function editInvoice(id) {
   document.getElementById('f-tva').value = inv.tva;
   document.getElementById('f-notes').value = inv.notes;
   lineItems = inv.items.map(i => ({...i}));
-  renderLines();
-  updatePreview();
-  showPage('create');
+  renderLines(); updatePreview(); showPage('create');
 }
 
 // ─── FORM ─────────────────────────────────────────────────────────────────────
@@ -704,13 +1159,17 @@ function updatePreview() {
   document.getElementById('tvaRateDisplay').textContent = tvaRate;
   document.getElementById('tvaDisplay').textContent = fmtMoney(tvaAmt);
   document.getElementById('totalDisplay').textContent = fmtMoney(total);
-  // PDF
   const num = document.getElementById('f-num').value || 'FACTURE';
   document.getElementById('pr-num').textContent = num;
   document.getElementById('pr-date').textContent = 'Date : ' + (fmtDate(document.getElementById('f-date').value) || '—');
   document.getElementById('pr-due').textContent = 'Échéance : ' + (fmtDate(document.getElementById('f-due').value) || '—');
   document.getElementById('pr-client').textContent = document.getElementById('f-client').value || '—';
   document.getElementById('pr-address').textContent = document.getElementById('f-address').value;
+  if (currentUser) {
+    document.getElementById('pr-company').textContent = currentUser.entreprise || currentUser.nom || 'Votre Entreprise';
+    document.getElementById('pr-from-name').textContent = currentUser.entreprise || currentUser.nom || 'Votre Entreprise';
+    document.getElementById('pr-company-email').textContent = currentUser.email || '';
+  }
   document.getElementById('pr-items').innerHTML = lineItems.map(l => `
     <tr><td>${l.desc||'—'}</td><td>${l.qty}</td><td>${fmtMoney(l.price)}</td><td>${fmtMoney(l.qty*l.price)}</td></tr>
   `).join('');
@@ -722,7 +1181,7 @@ function updatePreview() {
 function saveInvoice() {
   const num = document.getElementById('f-num').value.trim();
   const client = document.getElementById('f-client').value.trim();
-  if(!num || !client) { toast('Numéro et client requis', true); return; }
+  if (!num || !client) { toast('Numéro et client requis', true); return; }
   const sub = getSubtotal();
   const tvaRate = +(document.getElementById('f-tva').value||0);
   const tvaAmt = sub * tvaRate / 100;
@@ -735,7 +1194,7 @@ function saveInvoice() {
     items: lineItems.map(l=>({...l})),
     subtotal: sub, tvaAmt, total: sub + tvaAmt
   };
-  if(editingId) {
+  if (editingId) {
     const idx = invoices.findIndex(i => i.id===editingId);
     invoices[idx] = inv;
     toast('Facture mise à jour');
@@ -751,7 +1210,7 @@ function resetForm() { editingId = null; initForm(); showPage('invoices'); }
 function renderRelances() {
   const targets = invoices.filter(i => i.status==='overdue' || i.status==='pending');
   const grid = document.getElementById('relanceGrid');
-  if(!targets.length) { grid.innerHTML='<p style="color:var(--muted);font-size:14px;">Aucune facture à relancer.</p>'; return; }
+  if (!targets.length) { grid.innerHTML='<p style="color:var(--muted);font-size:14px;">Aucune facture à relancer.</p>'; return; }
   const today = new Date();
   grid.innerHTML = targets.map(inv => {
     const dueDate = new Date(inv.due);
@@ -770,9 +1229,7 @@ function renderRelances() {
       <div class="relance-amount">${fmtMoney(inv.total)}</div>
       <div class="relance-days ${isOver?'red':'orange'}">${daysText}</div>
       <div class="relance-actions">
-        <button class="btn btn-primary btn-sm" onclick="genRelanceIA('${inv.id}',this)">
-          ✨ Générer relance IA
-        </button>
+        <button class="btn btn-primary btn-sm" onclick="genRelanceIA('${inv.id}',this)">✨ Générer relance IA</button>
         <button class="btn btn-ghost btn-sm" onclick="markPaid('${inv.id}')">✓ Marquer payée</button>
       </div>
       <div class="ai-draft-box" id="draft-${inv.id}">
@@ -787,10 +1244,11 @@ function renderRelances() {
   }).join('');
 }
 async function genRelanceIA(id, btn) {
+  if (!checkAIPlan()) return;
   const inv = invoices.find(i => i.id===id);
-  if(!inv) return;
+  if (!inv) return;
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span>Génération...';
+  btn.innerHTML = '<span class="spinner"></span>Génération…';
   const today = new Date();
   const dueDate = new Date(inv.due);
   const diff = Math.round((today - dueDate) / 86400000);
@@ -816,14 +1274,13 @@ function copyDraft(id) {
 }
 function markPaid(id) {
   const inv = invoices.find(i => i.id===id);
-  if(inv) { inv.status='paid'; saveInvoices(); renderRelances(); toast(`${id} marquée comme payée`); }
+  if (inv) { inv.status='paid'; saveInvoices(); renderRelances(); toast(`${id} marquée comme payée`); }
 }
 
 // ─── CHAT ─────────────────────────────────────────────────────────────────────
 function toggleCtx(el) { el.classList.toggle('active'); const c=el.dataset.ctx; if(activeCtx.has(c)) activeCtx.delete(c); else activeCtx.add(c); }
 function askSuggestion(el) { document.getElementById('chatInput').value = el.textContent; sendChat(); }
 function chatSuggClick(el) {
-  // Extrait le texte sans l'emoji de début
   const text = el.textContent.replace(/^[\p{Emoji}\s]+/u, '').trim();
   document.getElementById('chatInput').value = text;
   document.getElementById('chatSuggestions').style.display = 'none';
@@ -831,10 +1288,10 @@ function chatSuggClick(el) {
 }
 function buildContext() {
   let ctx = '';
-  if(activeCtx.has('invoices')) {
+  if (activeCtx.has('invoices')) {
     ctx += '\n\n[DONNÉES FACTURES]\n' + JSON.stringify(invoices.map(i => ({id:i.id,client:i.client,total:i.total,status:i.status,date:i.date,due:i.due})), null, 2);
   }
-  if(activeCtx.has('kpis')) {
+  if (activeCtx.has('kpis')) {
     const paid = invoices.filter(i=>i.status==='paid');
     const pending = invoices.filter(i=>i.status==='pending');
     const overdue = invoices.filter(i=>i.status==='overdue');
@@ -843,9 +1300,10 @@ function buildContext() {
   return ctx;
 }
 async function sendChat() {
+  if (!checkAIPlan()) return;
   const input = document.getElementById('chatInput');
   const msg = input.value.trim();
-  if(!msg) return;
+  if (!msg) return;
   input.value = '';
   appendMsg(msg, 'user');
   const loadEl = appendMsg('…', 'ai loading');
@@ -873,17 +1331,15 @@ function appendMsg(text, cls) {
 }
 
 // ─── CLAUDE API ───────────────────────────────────────────────────────────────
-const BACKEND = 'https://facturo-production-2dbb.up.railway.app';
-
 async function callClaude(messages, system) {
   const body = { messages };
-  if(system) body.system = system;
-  const res = await fetch(`${BACKEND}/api/claude`, {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify(body)
-  });
-  if(!res.ok) {
+  if (system) body.system = system;
+  const headers = { 'Content-Type': 'application/json' };
+  if (currentUser && currentUser.token && currentUser.token !== 'local') {
+    headers['Authorization'] = 'Bearer ' + currentUser.token;
+  }
+  const res = await fetch(`${BACKEND}/api/claude`, { method:'POST', headers, body: JSON.stringify(body) });
+  if (!res.ok) {
     const err = await res.json().catch(()=>({erreur:res.statusText}));
     throw new Error(err.erreur || res.statusText);
   }
@@ -899,6 +1355,8 @@ function toast(msg, err=false) {
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2800);
 }
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
 // ─── MOBILE ───────────────────────────────────────────────────────────────────
 function toggleSidebar() {
@@ -909,25 +1367,30 @@ function closeSidebar() {
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('sidebarOverlay').classList.remove('open');
 }
-// Ferme la sidebar après navigation sur mobile
 document.querySelectorAll('.nav-item').forEach(el => {
   el.addEventListener('click', () => { if(window.innerWidth < 768) closeSidebar(); });
 });
 function togglePreview() {
-  const wrap = document.getElementById('pdfPreviewWrap');
-  wrap.classList.toggle('visible');
+  document.getElementById('pdfPreviewWrap').classList.toggle('visible');
 }
-// Sur desktop, l'aperçu est toujours visible
 function syncPreviewVisibility() {
   const wrap = document.getElementById('pdfPreviewWrap');
-  if(window.innerWidth >= 768) wrap.classList.add('visible');
+  if (window.innerWidth >= 768) wrap.classList.add('visible');
   else wrap.classList.remove('visible');
 }
 window.addEventListener('resize', syncPreviewVisibility);
-syncPreviewVisibility();
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
-renderDashboard();
+function initAuth() {
+  const session = JSON.parse(localStorage.getItem('facturo_session') || 'null');
+  if (session && session.email) {
+    currentUser = session;
+    startApp();
+  } else {
+    showAuthScreen('landing');
+  }
+}
+initAuth();
 </script>
 </body>
 </html>

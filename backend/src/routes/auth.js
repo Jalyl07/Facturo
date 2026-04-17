@@ -27,6 +27,8 @@ const validationConnexion = [
 
 router.post('/inscription', validationInscription, inscription);
 router.post('/connexion', validationConnexion, connexion);
+router.post('/register', validationInscription, inscription);
+router.post('/login', validationConnexion, connexion);
 router.get('/moi', authentifier, moi);
 router.put('/profil', authentifier, mettreAJourProfil);
 router.post('/changer-mot-de-passe', authentifier, changerMotDePasse);
