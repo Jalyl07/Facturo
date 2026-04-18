@@ -1,37 +1,55 @@
 const { stripe, PLANS } = require('../config/stripe');
 const supabase = require('../config/database');
 
-// POST /api/stripe/creer-session-abonnement
+// POST /api/stripe/creer-session-abonnement  /  /api/stripe/create-checkout-session
 const creerSessionAbonnement = async (req, res) => {
   const { plan } = req.body;
+  console.log(`[Stripe] create-checkout-session — user=${req.utilisateur?.id} plan=${plan}`);
 
   if (!PLANS[plan]) {
-    return res.status(400).json({ erreur: `Plan invalide. Choisissez parmi : ${Object.keys(PLANS).join(', ')}` });
+    return res.status(400).json({ erreur: `Plan invalide. Valeurs acceptées : ${Object.keys(PLANS).join(', ')}` });
+  }
+
+  const priceId = PLANS[plan].priceId;
+  if (!priceId) {
+    console.error(`[Stripe] STRIPE_PRICE_${plan.toUpperCase()} non défini dans les variables d'environnement`);
+    return res.status(500).json({ erreur: `Prix Stripe non configuré pour le plan "${plan}". Vérifiez STRIPE_PRICE_${plan.toUpperCase()} dans Railway.` });
   }
 
   try {
+    let customerId = req.utilisateur.stripe_customer_id;
+
+    // Créer le customer Stripe à la volée s'il est absent
+    if (!customerId) {
+      console.log(`[Stripe] stripe_customer_id absent pour user=${req.utilisateur.id} — création à la volée`);
+      const customer = await stripe.customers.create({
+        email: req.utilisateur.email,
+        name: req.utilisateur.nom,
+        metadata: { utilisateur_id: String(req.utilisateur.id) }
+      });
+      customerId = customer.id;
+      await supabase
+        .from('utilisateurs')
+        .update({ stripe_customer_id: customerId })
+        .eq('id', req.utilisateur.id);
+      console.log(`[Stripe] Customer créé : ${customerId}`);
+    }
+
     const session = await stripe.checkout.sessions.create({
-      customer: req.utilisateur.stripe_customer_id,
+      customer: customerId,
       payment_method_types: ['card'],
       mode: 'subscription',
-      line_items: [
-        {
-          price: PLANS[plan].priceId,
-          quantity: 1
-        }
-      ],
+      line_items: [{ price: priceId, quantity: 1 }],
       success_url: `${process.env.FRONTEND_URL}/success?plan=${plan}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.FRONTEND_URL}/`,
-      metadata: {
-        utilisateur_id: req.utilisateur.id,
-        plan
-      }
+      metadata: { utilisateur_id: String(req.utilisateur.id), plan }
     });
 
+    console.log(`[Stripe] Session créée : ${session.id} → ${session.url}`);
     res.json({ url: session.url, sessionId: session.id });
   } catch (err) {
-    console.error('Erreur création session Stripe:', err);
-    res.status(500).json({ erreur: 'Erreur lors de la création de la session de paiement' });
+    console.error('[Stripe] Erreur création session:', err.type, err.code, err.message);
+    res.status(500).json({ erreur: `Erreur Stripe : ${err.message}` });
   }
 };
 

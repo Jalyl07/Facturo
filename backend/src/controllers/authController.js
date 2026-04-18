@@ -34,12 +34,19 @@ const inscription = async (req, res) => {
     // Hasher le mot de passe
     const hash = await bcrypt.hash(motDePasse, 12);
 
-    // Créer le client Stripe
-    const stripeCustomer = await stripe.customers.create({
-      email,
-      name: nomEntreprise || nom,
-      metadata: { source: 'facturo' }
-    });
+    // Créer le client Stripe (non bloquant si Stripe indisponible)
+    let stripeCustomerId = null;
+    try {
+      const stripeCustomer = await stripe.customers.create({
+        email,
+        name: nomEntreprise || nom,
+        metadata: { source: 'facturo' }
+      });
+      stripeCustomerId = stripeCustomer.id;
+      console.log(`[Auth] Stripe customer créé : ${stripeCustomerId}`);
+    } catch (stripeErr) {
+      console.error('[Auth] Stripe customer creation failed (non-bloquant):', stripeErr.message);
+    }
 
     // Créer l'utilisateur en base
     const { data: utilisateur, error } = await supabase
@@ -51,7 +58,7 @@ const inscription = async (req, res) => {
         nom_entreprise: nomEntreprise || null,
         siret: siret || null,
         plan: 'starter',
-        stripe_customer_id: stripeCustomer.id,
+        stripe_customer_id: stripeCustomerId,
         actif: true
       })
       .select('id, nom, email, nom_entreprise, plan')

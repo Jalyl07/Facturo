@@ -494,6 +494,31 @@ textarea{resize:vertical;min-height:70px;}
     </div>
   </div>
 
+  <!-- ABONNEMENT REQUIS -->
+  <div id="screen-payment-required" class="auth-screen">
+    <div class="auth-form-wrap">
+      <div class="auth-card" style="text-align:center;">
+        <div style="font-size:56px;margin-bottom:16px;">🔑</div>
+        <div class="auth-title">Abonnement requis</div>
+        <div class="auth-sub">Finalisez votre abonnement pour accéder à FacturAI.</div>
+        <div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:10px;padding:14px;margin:16px 0;font-size:13px;color:#92400e;">
+          Votre compte a bien été créé. Il ne reste plus qu'à activer votre plan pour commencer.
+        </div>
+        <div style="background:var(--bg);border-radius:10px;padding:16px;margin-bottom:20px;">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:4px;">Plan choisi</div>
+          <div style="font-size:20px;font-weight:800;color:var(--text);" id="payment-required-plan">—</div>
+        </div>
+        <button class="btn btn-primary" style="width:100%;padding:12px;font-size:15px;" id="pay-now-btn" onclick="payNow()">
+          💳 Procéder au paiement
+        </button>
+        <div class="auth-divider" style="margin-top:12px;">
+          <a class="auth-link" onclick="doLogout()">Se déconnecter</a>
+        </div>
+        <div class="auth-error" id="payment-required-error" style="margin-top:12px;"></div>
+      </div>
+    </div>
+  </div>
+
 </div><!-- /auth-wrap -->
 
 <!-- ═══════════════════════════ APPLICATION ═════════════════════════════════ -->
@@ -838,14 +863,43 @@ function showRegister(plan) {
 }
 
 function startApp() {
+  // Block dashboard if payment not done (backend users only)
+  if (currentUser.token !== 'local' && !currentUser.paid) {
+    console.log('[Auth] Utilisateur non payé — affichage écran abonnement requis');
+    showPaymentRequired();
+    return;
+  }
   document.getElementById('auth-wrap').style.display = 'none';
   document.getElementById('app-wrap').classList.add('show');
-  // Load this user's invoices
   const stored = localStorage.getItem('facturo_invoices_' + currentUser.email);
   invoices = stored ? JSON.parse(stored) : [];
   if (!invoices.length) seedInvoices();
   updateSidebarUser();
   renderDashboard();
+}
+
+function showPaymentRequired() {
+  const planNames = { starter: 'Starter — 19€/mois', pro: 'Pro — 39€/mois', business: 'Business — 69€/mois' };
+  const el = document.getElementById('payment-required-plan');
+  if (el) el.textContent = planNames[currentUser.plan] || currentUser.plan || 'Pro — 39€/mois';
+  showAuthScreen('payment-required');
+}
+
+async function payNow() {
+  const btn = document.getElementById('pay-now-btn');
+  const errEl = document.getElementById('payment-required-error');
+  errEl.classList.remove('show');
+  btn.disabled = true;
+  btn.textContent = 'Redirection…';
+  try {
+    await startStripeCheckout(currentUser.plan || 'pro');
+  } catch (e) {
+    console.error('[Stripe] payNow error:', e);
+    errEl.textContent = e.message;
+    errEl.classList.add('show');
+    btn.disabled = false;
+    btn.textContent = '💳 Procéder au paiement';
+  }
 }
 
 function updateSidebarUser() {
@@ -895,16 +949,19 @@ async function doLogin() {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.erreur || 'Erreur de connexion');
-    currentUser = { email: data.utilisateur.email, nom: data.utilisateur.nom, plan: data.utilisateur.plan || 'starter', token: data.token };
+    // Returning user: already paid
+    currentUser = { email: data.utilisateur.email, nom: data.utilisateur.nom, plan: data.utilisateur.plan || 'starter', token: data.token, paid: true };
     localStorage.setItem('facturo_session', JSON.stringify(currentUser));
+    console.log('[Auth] Connexion réussie:', currentUser.email, 'plan:', currentUser.plan);
     startApp();
   } catch (err) {
+    console.error('[Auth] Erreur connexion:', err.message);
     // Fallback: local auth
     const localUser = getLocalUser(email);
     if (localUser) {
       const hash = await simpleHash(password);
       if (hash === localUser.passwordHash) {
-        currentUser = { email: localUser.email, nom: localUser.nom, plan: localUser.plan, token: 'local' };
+        currentUser = { email: localUser.email, nom: localUser.nom, plan: localUser.plan, token: 'local', paid: true };
         localStorage.setItem('facturo_session', JSON.stringify(currentUser));
         startApp(); return;
       }
@@ -937,17 +994,15 @@ async function doRegister() {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.erreur || 'Erreur lors de la création');
-    currentUser = { email: data.utilisateur.email, nom: data.utilisateur.nom, plan, token: data.token };
+    // New user: not yet paid
+    currentUser = { email: data.utilisateur.email, nom: data.utilisateur.nom, plan, token: data.token, paid: false };
     localStorage.setItem('facturo_session', JSON.stringify(currentUser));
-    // If a paid plan was chosen, redirect to Stripe Checkout
+    console.log('[Auth] Inscription réussie:', currentUser.email, 'plan:', plan, '— redirection Stripe');
+    // Always redirect to Stripe for payment
     const chosenPlan = pendingPlan || plan;
-    if (chosenPlan !== 'starter') {
-      pendingPlan = null;
-      await startStripeCheckout(chosenPlan);
-      return;
-    }
     pendingPlan = null;
-    startApp();
+    await startStripeCheckout(chosenPlan);
+    return;
   } catch (err) {
     // Fallback: local registration
     if (getLocalUser(email)) {
@@ -957,7 +1012,7 @@ async function doRegister() {
     }
     const passwordHash = await simpleHash(password);
     saveLocalUser({ email, nom, entreprise, plan, passwordHash });
-    currentUser = { email, nom, plan, token: 'local' };
+    currentUser = { email, nom, plan, token: 'local', paid: true };
     localStorage.setItem('facturo_session', JSON.stringify(currentUser));
     pendingPlan = null;
     startApp();
@@ -1008,36 +1063,39 @@ async function startStripeCheckout(plan) {
     toast('Créez un compte pour souscrire à un plan payant.', true);
     return;
   }
+  console.log('[Stripe] Création session checkout pour plan:', plan);
   toast('Redirection vers le paiement…');
-  try {
-    const res = await fetch(`${BACKEND}/api/stripe/create-checkout-session`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + currentUser.token
-      },
-      body: JSON.stringify({ plan })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.erreur || 'Erreur Stripe');
-    window.location.href = data.url;
-  } catch (e) {
-    toast('Erreur : ' + e.message, true);
-  }
+  const res = await fetch(`${BACKEND}/api/stripe/create-checkout-session`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + currentUser.token
+    },
+    body: JSON.stringify({ plan })
+  });
+  const data = await res.json();
+  console.log('[Stripe] Réponse backend:', res.status, data);
+  if (!res.ok) throw new Error(data.erreur || `Erreur ${res.status}`);
+  if (!data.url) throw new Error('URL Stripe manquante dans la réponse');
+  console.log('[Stripe] Redirection vers:', data.url);
+  window.location.href = data.url;
 }
 
 function handleSuccessPage() {
   const params = new URLSearchParams(window.location.search);
   const plan = params.get('plan') || 'pro';
   const planNames = { starter: 'Starter — 19€/mois', pro: 'Pro — 39€/mois', business: 'Business — 69€/mois' };
+  console.log('[Stripe] Paiement réussi — plan:', plan, 'session_id:', params.get('session_id'));
   document.getElementById('success-plan-name').textContent = planNames[plan] || plan;
-  // Update session plan
   if (currentUser) {
     currentUser.plan = plan;
+    currentUser.paid = true;  // Marquer comme payé
     localStorage.setItem('facturo_session', JSON.stringify(currentUser));
     document.getElementById('success-email').textContent = currentUser.email;
-    document.getElementById('success-msg').textContent =
-      `Bienvenue sur le plan ${planNames[plan] || plan}. Toutes les fonctionnalités IA sont maintenant disponibles.`;
+    const isAI = plan === 'pro' || plan === 'business';
+    document.getElementById('success-msg').textContent = isAI
+      ? `Bienvenue sur le plan ${planNames[plan]}. Les Relances IA et l'Assistant IA sont maintenant disponibles.`
+      : `Bienvenue sur le plan ${planNames[plan]}. Votre abonnement est actif.`;
   }
   showAuthScreen('success');
 }
