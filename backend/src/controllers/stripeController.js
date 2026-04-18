@@ -109,22 +109,42 @@ const webhook = async (req, res) => {
   const sig = req.headers['stripe-signature'];
   let event;
 
-  try {
-    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
-  } catch (err) {
-    console.error('Erreur vérification webhook Stripe:', err.message);
-    return res.status(400).json({ erreur: `Webhook invalide : ${err.message}` });
+  if (!process.env.STRIPE_WEBHOOK_SECRET) {
+    console.error('[Webhook] STRIPE_WEBHOOK_SECRET non défini — impossible de vérifier la signature');
+    return res.status(500).json({ erreur: 'STRIPE_WEBHOOK_SECRET manquant' });
   }
 
   try {
+    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+  } catch (err) {
+    console.error('[Webhook] Signature invalide:', err.message);
+    return res.status(400).json({ erreur: `Webhook invalide : ${err.message}` });
+  }
+
+  console.log(`[Webhook] Événement reçu : ${event.type} (id=${event.id})`);
+
+  // Répondre 200 immédiatement pour éviter le timeout Stripe
+  res.json({ recu: true });
+
+  try {
     switch (event.type) {
+
       case 'checkout.session.completed': {
         const session = event.data.object;
         const utilisateurId = session.metadata?.utilisateur_id;
         const plan = session.metadata?.plan;
+        const customerId = session.customer;
 
-        if (utilisateurId && plan) {
-          await supabase
+        console.log(`[Webhook] checkout.session.completed — customer=${customerId} utilisateur_id=${utilisateurId} plan=${plan}`);
+
+        if (!plan) {
+          console.warn('[Webhook] plan absent dans les metadata — abandon');
+          break;
+        }
+
+        // Stratégie 1 : lookup par utilisateur_id (metadata)
+        if (utilisateurId) {
+          const { error } = await supabase
             .from('utilisateurs')
             .update({
               plan,
@@ -133,60 +153,101 @@ const webhook = async (req, res) => {
             })
             .eq('id', utilisateurId);
 
-          console.log(`Plan mis à jour : utilisateur ${utilisateurId} → ${plan}`);
+          if (!error) {
+            console.log(`[Webhook] ✓ Plan mis à jour via utilisateur_id=${utilisateurId} → ${plan}`);
+            break;
+          }
+          console.warn('[Webhook] Mise à jour par utilisateur_id échouée, fallback sur stripe_customer_id');
+        }
+
+        // Stratégie 2 : fallback par stripe_customer_id
+        if (customerId) {
+          const { data: utilisateur, error } = await supabase
+            .from('utilisateurs')
+            .select('id, email')
+            .eq('stripe_customer_id', customerId)
+            .single();
+
+          if (error || !utilisateur) {
+            console.error(`[Webhook] Utilisateur introuvable pour customer=${customerId}`);
+            break;
+          }
+
+          await supabase
+            .from('utilisateurs')
+            .update({
+              plan,
+              stripe_subscription_id: session.subscription,
+              mis_a_jour_le: new Date().toISOString()
+            })
+            .eq('id', utilisateur.id);
+
+          console.log(`[Webhook] ✓ Plan mis à jour via stripe_customer_id → user=${utilisateur.email} plan=${plan}`);
         }
         break;
       }
 
       case 'customer.subscription.updated': {
         const subscription = event.data.object;
-        const customer = await stripe.customers.retrieve(subscription.customer);
+        const priceId = subscription.items.data[0]?.price?.id;
+        const plan = Object.keys(PLANS).find(k => PLANS[k].priceId === priceId) || 'starter';
+
+        console.log(`[Webhook] customer.subscription.updated — customer=${subscription.customer} priceId=${priceId} → plan=${plan}`);
 
         const { data: utilisateur } = await supabase
           .from('utilisateurs')
-          .select('id')
+          .select('id, email')
           .eq('stripe_customer_id', subscription.customer)
           .single();
 
-        if (utilisateur) {
-          // Déterminer le plan depuis le priceId
-          const priceId = subscription.items.data[0]?.price?.id;
-          const plan = Object.keys(PLANS).find(k => PLANS[k].priceId === priceId) || 'starter';
-
-          await supabase
-            .from('utilisateurs')
-            .update({ plan, mis_a_jour_le: new Date().toISOString() })
-            .eq('id', utilisateur.id);
+        if (!utilisateur) {
+          console.warn(`[Webhook] Utilisateur introuvable pour customer=${subscription.customer}`);
+          break;
         }
+
+        await supabase
+          .from('utilisateurs')
+          .update({ plan, mis_a_jour_le: new Date().toISOString() })
+          .eq('id', utilisateur.id);
+
+        console.log(`[Webhook] ✓ Plan mis à jour → user=${utilisateur.email} plan=${plan}`);
         break;
       }
 
       case 'customer.subscription.deleted': {
         const subscription = event.data.object;
 
+        console.log(`[Webhook] customer.subscription.deleted — customer=${subscription.customer}`);
+
         const { data: utilisateur } = await supabase
           .from('utilisateurs')
-          .select('id')
+          .select('id, email')
           .eq('stripe_customer_id', subscription.customer)
           .single();
 
-        if (utilisateur) {
-          await supabase
-            .from('utilisateurs')
-            .update({ plan: 'starter', stripe_subscription_id: null, mis_a_jour_le: new Date().toISOString() })
-            .eq('id', utilisateur.id);
+        if (!utilisateur) {
+          console.warn(`[Webhook] Utilisateur introuvable pour customer=${subscription.customer}`);
+          break;
         }
+
+        await supabase
+          .from('utilisateurs')
+          .update({
+            plan: 'starter',
+            stripe_subscription_id: null,
+            mis_a_jour_le: new Date().toISOString()
+          })
+          .eq('id', utilisateur.id);
+
+        console.log(`[Webhook] ✓ Abonnement annulé → user=${utilisateur.email} remis sur starter`);
         break;
       }
 
       default:
-        console.log(`Événement Stripe non géré : ${event.type}`);
+        console.log(`[Webhook] Événement non géré : ${event.type}`);
     }
-
-    res.json({ recu: true });
   } catch (err) {
-    console.error('Erreur traitement webhook:', err);
-    res.status(500).json({ erreur: 'Erreur interne lors du traitement du webhook' });
+    console.error('[Webhook] Erreur traitement:', err.message, err.stack);
   }
 };
 
