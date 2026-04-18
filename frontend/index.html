@@ -211,20 +211,20 @@ textarea{resize:vertical;min-height:70px;}
 .section-title{text-align:center;font-size:28px;font-weight:700;margin-bottom:8px;}
 .section-sub{text-align:center;color:var(--muted);font-size:15px;margin-bottom:40px;}
 .pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;max-width:920px;margin:0 auto;}
-.pricing-card{border:2px solid var(--border);border-radius:16px;padding:28px;background:var(--white);transition:box-shadow .2s;position:relative;}
-.pricing-card:hover{box-shadow:0 8px 24px rgba(0,0,0,.1);}
-.pricing-card.featured{border-color:var(--primary);}
-.pricing-featured-badge{position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:var(--primary);color:#fff;font-size:11px;font-weight:700;padding:4px 16px;border-radius:20px;white-space:nowrap;}
-.pricing-plan-name{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;}
-.pricing-price{font-size:40px;font-weight:800;color:var(--text);margin-bottom:4px;line-height:1;}
-.pricing-price span{font-size:16px;font-weight:400;color:var(--muted);}
-.pricing-desc{font-size:13px;color:var(--muted);margin-bottom:20px;margin-top:4px;}
-.pricing-features{list-style:none;margin-bottom:24px;}
-.pricing-features li{font-size:13px;color:var(--text);padding:5px 0;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border);}
+.pricing-card{border:2px solid var(--border);border-radius:16px;padding:28px;background:var(--white);transition:box-shadow .2s;position:relative;display:flex;flex-direction:column;}
+.pricing-card:hover{box-shadow:0 8px 28px rgba(0,0,0,.1);}
+.pricing-card.featured{border-color:#1D9E75;box-shadow:0 4px 20px rgba(29,158,117,.15);}
+.pricing-featured-badge{position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:#1D9E75;color:#fff;font-size:11px;font-weight:700;padding:5px 18px;border-radius:20px;white-space:nowrap;letter-spacing:.4px;}
+.pricing-plan-name{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;}
+.pricing-price{font-size:42px;font-weight:800;color:var(--text);margin-bottom:2px;line-height:1;}
+.pricing-price span{font-size:15px;font-weight:400;color:var(--muted);}
+.pricing-desc{font-size:13px;color:var(--muted);margin-bottom:22px;margin-top:6px;}
+.pricing-features{list-style:none;margin-bottom:28px;flex:1;}
+.pricing-features li{font-size:13px;color:var(--text);padding:7px 0;display:flex;align-items:flex-start;gap:9px;border-bottom:1px solid #f3f4f6;}
 .pricing-features li:last-child{border:none;}
-.pricing-features li::before{content:'✓';color:var(--primary);font-weight:700;flex-shrink:0;}
-.pricing-features li.no::before{content:'✗';color:#d1d5db;}
-.pricing-features li.no{color:var(--muted);}
+.pricing-features li::before{content:'✓';color:#1D9E75;font-weight:800;font-size:14px;flex-shrink:0;margin-top:1px;}
+.pricing-features li.no::before{content:'✗';color:#d1d5db;font-weight:700;}
+.pricing-features li.no{color:#9ca3af;}
 /* AUTH FORMS */
 .auth-form-wrap{display:flex;align-items:center;justify-content:center;flex:1;padding:40px 24px;background:var(--bg);}
 .auth-card{background:var(--white);border-radius:16px;padding:36px;width:420px;max-width:100%;box-shadow:0 4px 24px rgba(0,0,0,.08);}
@@ -353,49 +353,60 @@ textarea{resize:vertical;min-height:70px;}
       <div class="section-title">Tarifs simples et transparents</div>
       <div class="section-sub">Sans engagement · Changez de plan à tout moment</div>
       <div class="pricing-grid">
+
+        <!-- STARTER -->
         <div class="pricing-card">
           <div class="pricing-plan-name">Starter</div>
           <div class="pricing-price">19€<span>/mois</span></div>
-          <div class="pricing-desc">Idéal pour les indépendants</div>
+          <div class="pricing-desc">Pour les indépendants qui démarrent</div>
           <ul class="pricing-features">
-            <li>20 factures / mois</li>
-            <li>10 clients</li>
-            <li>Aperçu PDF temps réel</li>
-            <li>Tableau de bord</li>
-            <li class="no">Relances IA</li>
-            <li class="no">Assistant IA</li>
+            <li>30 factures par mois</li>
+            <li>10 clients maximum</li>
+            <li>Aperçu PDF basique</li>
+            <li>Relances manuelles</li>
+            <li class="no">Relances IA (Claude)</li>
+            <li class="no">Assistant IA financier</li>
+            <li class="no">Score de risque clients</li>
+            <li class="no">Export comptable</li>
           </ul>
-          <button class="btn btn-ghost" style="width:100%;padding:10px;" onclick="choosePlan('starter')">Choisir Starter</button>
+          <button class="btn btn-ghost" style="width:100%;padding:11px;font-size:14px;" onclick="choosePlan('starter')">Choisir Starter</button>
         </div>
+
+        <!-- PRO -->
         <div class="pricing-card featured">
-          <div class="pricing-featured-badge">⭐ Le plus populaire</div>
+          <div class="pricing-featured-badge">Recommandé</div>
           <div class="pricing-plan-name">Pro</div>
           <div class="pricing-price">39€<span>/mois</span></div>
           <div class="pricing-desc">Pour les freelances actifs</div>
           <ul class="pricing-features">
-            <li>100 factures / mois</li>
-            <li>50 clients</li>
-            <li>Aperçu PDF temps réel</li>
-            <li>Tableau de bord</li>
-            <li>Relances IA ✨</li>
-            <li>Assistant IA ✨</li>
+            <li>150 factures par mois</li>
+            <li>Clients illimités</li>
+            <li>Relances IA personnalisées par Claude</li>
+            <li>Assistant IA financier</li>
+            <li>Score de risque clients</li>
+            <li>Export comptable CSV</li>
+            <li>Support email 48h</li>
           </ul>
-          <button class="btn btn-primary" style="width:100%;padding:10px;" onclick="choosePlan('pro')">Choisir Pro</button>
+          <button class="btn btn-primary" style="width:100%;padding:11px;font-size:14px;" onclick="choosePlan('pro')">Choisir Pro</button>
         </div>
+
+        <!-- BUSINESS -->
         <div class="pricing-card">
           <div class="pricing-plan-name">Business</div>
           <div class="pricing-price">69€<span>/mois</span></div>
           <div class="pricing-desc">Pour les PME en croissance</div>
           <ul class="pricing-features">
             <li>Factures illimitées</li>
-            <li>Clients illimités</li>
-            <li>Aperçu PDF temps réel</li>
-            <li>Tableau de bord</li>
-            <li>Relances IA ✨</li>
-            <li>Assistant IA ✨</li>
+            <li>Tout du plan Pro</li>
+            <li>Multi-devises (EUR, USD, GBP, CHF)</li>
+            <li>Rapports financiers avancés</li>
+            <li>Support prioritaire sous 4h</li>
+            <li>Onboarding personnalisé</li>
+            <li>Accès API</li>
           </ul>
-          <button class="btn btn-ghost" style="width:100%;padding:10px;" onclick="choosePlan('business')">Choisir Business</button>
+          <button class="btn btn-ghost" style="width:100%;padding:11px;font-size:14px;" onclick="choosePlan('business')">Choisir Business</button>
         </div>
+
       </div>
     </section>
 
