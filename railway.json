@@ -4,5 +4,24 @@
   },
   "deploy": {
     "startCommand": "cd backend && npm install && npm start"
+  },
+  "environments": {
+    "production": {
+      "variables": {
+        "NODE_ENV": "production",
+        "PORT": "3000",
+        "JWT_EXPIRES_IN": "7d",
+        "STRIPE_SECRET_KEY": "${{STRIPE_SECRET_KEY}}",
+        "STRIPE_WEBHOOK_SECRET": "${{STRIPE_WEBHOOK_SECRET}}",
+        "STRIPE_PRICE_STARTER": "${{STRIPE_PRICE_STARTER}}",
+        "STRIPE_PRICE_PRO": "${{STRIPE_PRICE_PRO}}",
+        "STRIPE_PRICE_BUSINESS": "${{STRIPE_PRICE_BUSINESS}}",
+        "JWT_SECRET": "${{JWT_SECRET}}",
+        "SUPABASE_URL": "${{SUPABASE_URL}}",
+        "SUPABASE_SERVICE_KEY": "${{SUPABASE_SERVICE_KEY}}",
+        "ANTHROPIC_API_KEY": "${{ANTHROPIC_API_KEY}}",
+        "FRONTEND_URL": "https://facturai.tech"
+      }
+    }
   }
 }
