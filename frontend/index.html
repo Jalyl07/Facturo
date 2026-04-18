@@ -300,6 +300,11 @@ textarea{resize:vertical;min-height:70px;}
   .kpi-grid{grid-template-columns:1fr;}
   .kpi-card{padding:14px;}
 }
+/* ONBOARDING */
+.onboarding-step{display:flex;align-items:flex-start;gap:14px;padding:14px 0;border-bottom:1px solid var(--border);}
+.onboarding-step:last-child{border:none;}
+.step-num{width:28px;height:28px;border-radius:50%;background:var(--primary);color:#fff;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;}
+.step-text{font-size:13px;color:var(--text);line-height:1.6;}
 </style>
 </head>
 <body>
@@ -562,6 +567,10 @@ textarea{resize:vertical;min-height:70px;}
     <div class="nav-item" data-page="risque" id="nav-risque">
       <span class="nav-icon">⚠️</span> Risque clients
     </div>
+    <div class="nav-section">Business</div>
+    <div class="nav-item" data-page="rapports" id="nav-rapports">
+      <span class="nav-icon">📈</span> Rapports
+    </div>
   </nav>
   <div class="sidebar-footer">
     <div style="margin-bottom:10px;">
@@ -576,6 +585,9 @@ textarea{resize:vertical;min-height:70px;}
     </div>
     <button id="upgrade-btn" onclick="showUpgradeOptions()" style="display:none;width:100%;background:var(--primary);color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:12px;font-weight:600;cursor:pointer;">
       ⭐ Upgrader mon plan
+    </button>
+    <button id="support-btn" onclick="showSupport()" style="width:100%;background:none;border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.5);border-radius:6px;padding:7px 10px;font-size:12px;cursor:pointer;margin-top:6px;transition:all .15s;" onmouseover="this.style.background='rgba(255,255,255,.06)'" onmouseout="this.style.background='none'">
+      💬 Contacter le support
     </button>
   </div>
 </div>
@@ -730,6 +742,15 @@ textarea{resize:vertical;min-height:70px;}
               <input type="text" id="f-notes" placeholder="Conditions de paiement..." oninput="updatePreview()"/>
             </div>
           </div>
+          <div class="form-group" id="currency-group" style="display:none;">
+            <label>Devise <span style="font-size:10px;color:var(--primary);font-weight:600;text-transform:none;letter-spacing:0;">✨ Business</span></label>
+            <select id="f-currency" onchange="updatePreview()">
+              <option value="EUR">EUR — €</option>
+              <option value="USD">USD — $</option>
+              <option value="GBP">GBP — £</option>
+              <option value="CHF">CHF — Fr</option>
+            </select>
+          </div>
           <div class="totals-box">
             <div class="total-row"><span>Sous-total HT</span><span id="subtotalDisplay">0,00 €</span></div>
             <div class="total-row"><span>TVA (<span id="tvaRateDisplay">20</span>%)</span><span id="tvaDisplay">0,00 €</span></div>
@@ -836,6 +857,11 @@ textarea{resize:vertical;min-height:70px;}
       <div id="risqueGrid"></div>
     </div>
 
+    <!-- RAPPORTS -->
+    <div class="page" id="page-rapports">
+      <div id="rapportsContent"></div>
+    </div>
+
   </div><!-- /content -->
 </div><!-- /main -->
 
@@ -863,6 +889,53 @@ textarea{resize:vertical;min-height:70px;}
       </div>
     </div>
     <button class="btn btn-ghost" style="width:100%;" onclick="closeModal('modal-upgrade')">Plus tard</button>
+  </div>
+</div>
+
+<!-- ONBOARDING MODAL -->
+<div class="modal-overlay" id="modal-onboarding">
+  <div class="modal" style="max-width:440px;">
+    <div style="text-align:center;margin-bottom:20px;">
+      <div style="font-size:52px;margin-bottom:10px;">🎉</div>
+      <h2 style="font-size:18px;font-weight:700;">Bienvenue sur FacturAI !</h2>
+      <p style="font-size:13px;color:var(--muted);margin-top:6px;">3 étapes pour démarrer</p>
+    </div>
+    <div class="onboarding-step">
+      <div class="step-num">1</div>
+      <div class="step-text"><strong>Ajoutez votre premier client</strong><br/>Saisissez son nom et son email lors de la création d'une facture.</div>
+    </div>
+    <div class="onboarding-step">
+      <div class="step-num">2</div>
+      <div class="step-text"><strong>Créez votre première facture</strong><br/>Remplissez les lignes de prestation, définissez l'échéance et enregistrez.</div>
+    </div>
+    <div class="onboarding-step">
+      <div class="step-num">3</div>
+      <div class="step-text"><strong>Envoyez et suivez vos paiements</strong><br/>Marquez les factures payées et relancez les impayés avec l'IA.</div>
+    </div>
+    <div id="onboarding-business" style="display:none;background:var(--primary-light);border-radius:8px;padding:12px;margin-top:14px;font-size:12px;color:var(--primary-dark);text-align:center;line-height:1.6;">
+      ✨ <strong>Votre onboarding personnalisé est inclus</strong><br/>Contactez-nous à <a href="mailto:onboarding@facturai.tech" style="color:var(--primary);font-weight:600;">onboarding@facturai.tech</a>
+    </div>
+    <button class="btn btn-primary" style="width:100%;margin-top:20px;padding:12px;font-size:14px;" onclick="closeOnboarding()">C'est parti ! 🚀</button>
+  </div>
+</div>
+
+<!-- BUSINESS UPGRADE MODAL -->
+<div class="modal-overlay" id="modal-upgrade-business">
+  <div class="modal upgrade-modal">
+    <div class="upgrade-icon">📈</div>
+    <div class="upgrade-title">Fonctionnalité Business</div>
+    <div class="upgrade-desc">
+      Les <strong>Rapports financiers avancés</strong> et la <strong>multi-devises</strong> sont réservés au plan <strong>Business</strong>.<br/>
+      Accédez à des analyses approfondies de votre activité.
+    </div>
+    <div class="upgrade-plans" style="justify-content:center;">
+      <div class="upgrade-plan-btn" onclick="upgradeToP('business')">
+        <div class="upgrade-plan-name">Business</div>
+        <div class="upgrade-plan-price">69€<small>/mois</small></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;">Rapports + Multi-devises + IA</div>
+      </div>
+    </div>
+    <button class="btn btn-ghost" style="width:100%;" onclick="closeModal('modal-upgrade-business')">Plus tard</button>
   </div>
 </div>
 
@@ -905,6 +978,9 @@ function startApp() {
   invoices = stored ? JSON.parse(stored) : [];
   updateSidebarUser();
   renderDashboard();
+  if (!localStorage.getItem('facturo_onboarded_' + currentUser.email)) {
+    setTimeout(showOnboarding, 700);
+  }
 }
 
 function showPaymentRequired() {
@@ -958,6 +1034,14 @@ function updateSidebarUser() {
       if (existing) existing.remove();
     }
   });
+  // Lock rapports for non-business
+  const rapportsEl = document.getElementById('nav-rapports');
+  if (rapportsEl) {
+    const existing = rapportsEl.querySelector('.lock-icon');
+    if (currentUser.plan !== 'business') {
+      if (!existing) { const lk = document.createElement('span'); lk.className = 'lock-icon'; lk.textContent = '🔒'; rapportsEl.appendChild(lk); }
+    } else { if (existing) existing.remove(); }
+  }
   // Show/hide upgrade button
   const upgradeBtn = document.getElementById('upgrade-btn');
   if (upgradeBtn) upgradeBtn.style.display = currentUser.plan === 'starter' ? 'block' : 'none';
@@ -1169,6 +1253,13 @@ function checkAIPlan() {
   }
   return true;
 }
+function checkBusinessPlan() {
+  if (!currentUser || currentUser.plan !== 'business') {
+    openModal('modal-upgrade-business');
+    return false;
+  }
+  return true;
+}
 
 // ─── STATE ────────────────────────────────────────────────────────────────────
 let invoices = [];
@@ -1181,13 +1272,20 @@ function saveInvoices() {
 }
 
 
-function fmtMoney(n) { return n.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €'; }
+const CURR_SYMBOLS = { EUR: '€', USD: '$', GBP: '£', CHF: 'Fr' };
+function fmtMoneyC(n, currency) {
+  const sym = CURR_SYMBOLS[currency] || '€';
+  const val = (n||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  return (currency && currency !== 'EUR') ? sym + '\u00a0' + val : val + ' ' + sym;
+}
+function fmtMoney(n) { return fmtMoneyC(n, 'EUR'); }
 function fmtDate(d) { if(!d) return '—'; const p=d.split('-'); return `${p[2]}/${p[1]}/${p[0]}`; }
 
 // ─── NAVIGATION ──────────────────────────────────────────────────────────────
-const pageTitles = {dashboard:'Tableau de bord',invoices:'Factures',create:'Nouvelle facture',relances:'Relances IA',chat:'Assistant IA',risque:'Risque clients'};
+const pageTitles = {dashboard:'Tableau de bord',invoices:'Factures',create:'Nouvelle facture',relances:'Relances IA',chat:'Assistant IA',risque:'Risque clients',rapports:'Rapports financiers'};
 function showPage(id) {
   if ((id === 'relances' || id === 'chat' || id === 'risque') && !checkAIPlan()) return;
+  if (id === 'rapports' && !checkBusinessPlan()) return;
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + id).classList.add('active');
@@ -1197,6 +1295,7 @@ function showPage(id) {
   if (id === 'invoices') renderInvoices(invoices);
   if (id === 'relances') renderRelances();
   if (id === 'risque') renderRisque();
+  if (id === 'rapports') renderRapports();
   if (id === 'create' && !editingId) initForm();
 }
 document.querySelectorAll('.nav-item').forEach(el => {
@@ -1291,9 +1390,9 @@ function renderInvoices(list) {
       <td data-label="Client">${i.client}</td>
       <td data-label="Date">${fmtDate(i.date)}</td>
       <td data-label="Échéance">${fmtDate(i.due)}</td>
-      <td data-label="Montant HT">${fmtMoney(i.subtotal)}</td>
+      <td data-label="Montant HT">${fmtMoneyC(i.subtotal,i.currency||'EUR')}</td>
       <td data-label="TVA">${i.tva}%</td>
-      <td data-label="Total TTC" style="font-weight:600;">${fmtMoney(i.total)}</td>
+      <td data-label="Total TTC" style="font-weight:600;">${fmtMoneyC(i.total,i.currency||'EUR')}</td>
       <td data-label="Statut"><span class="badge badge-${i.status}">${statusLabel(i.status)}</span></td>
       <td data-label="">
         <button class="btn btn-ghost btn-sm" onclick="editInvoice('${i.id}')">✏️</button>
@@ -1325,6 +1424,10 @@ function editInvoice(id) {
   document.getElementById('f-address').value = inv.address;
   document.getElementById('f-tva').value = inv.tva;
   document.getElementById('f-notes').value = inv.notes;
+  const cg = document.getElementById('currency-group');
+  if (cg) cg.style.display = currentUser?.plan === 'business' ? '' : 'none';
+  const cs = document.getElementById('f-currency');
+  if (cs) cs.value = inv.currency || 'EUR';
   lineItems = inv.items.map(i => ({...i}));
   renderLines(); updatePreview(); showPage('create');
 }
@@ -1344,6 +1447,10 @@ function initForm() {
   document.getElementById('f-address').value = '';
   document.getElementById('f-tva').value = '20';
   document.getElementById('f-notes').value = '';
+  const currGroup = document.getElementById('currency-group');
+  if (currGroup) currGroup.style.display = currentUser?.plan === 'business' ? '' : 'none';
+  const currSel = document.getElementById('f-currency');
+  if (currSel) currSel.value = 'EUR';
   lineItems = [{desc:'',qty:1,price:0}];
   renderLines(); updatePreview();
 }
@@ -1366,10 +1473,11 @@ function updatePreview() {
   const tvaRate = +(document.getElementById('f-tva').value||0);
   const tvaAmt = sub * tvaRate / 100;
   const total = sub + tvaAmt;
-  document.getElementById('subtotalDisplay').textContent = fmtMoney(sub);
+  const currency = (currentUser?.plan === 'business' && document.getElementById('f-currency')) ? document.getElementById('f-currency').value : 'EUR';
+  document.getElementById('subtotalDisplay').textContent = fmtMoneyC(sub, currency);
   document.getElementById('tvaRateDisplay').textContent = tvaRate;
-  document.getElementById('tvaDisplay').textContent = fmtMoney(tvaAmt);
-  document.getElementById('totalDisplay').textContent = fmtMoney(total);
+  document.getElementById('tvaDisplay').textContent = fmtMoneyC(tvaAmt, currency);
+  document.getElementById('totalDisplay').textContent = fmtMoneyC(total, currency);
   const num = document.getElementById('f-num').value || 'FACTURE';
   document.getElementById('pr-num').textContent = num;
   document.getElementById('pr-date').textContent = 'Date : ' + (fmtDate(document.getElementById('f-date').value) || '—');
@@ -1382,11 +1490,11 @@ function updatePreview() {
     document.getElementById('pr-company-email').textContent = currentUser.email || '';
   }
   document.getElementById('pr-items').innerHTML = lineItems.map(l => `
-    <tr><td>${l.desc||'—'}</td><td>${l.qty}</td><td>${fmtMoney(l.price)}</td><td>${fmtMoney(l.qty*l.price)}</td></tr>
+    <tr><td>${l.desc||'—'}</td><td>${l.qty}</td><td>${fmtMoneyC(l.price,currency)}</td><td>${fmtMoneyC(l.qty*l.price,currency)}</td></tr>
   `).join('');
-  document.getElementById('pr-subtotal').textContent = fmtMoney(sub);
-  document.getElementById('pr-tva').textContent = `${fmtMoney(tvaAmt)} (${tvaRate}%)`;
-  document.getElementById('pr-total').textContent = fmtMoney(total);
+  document.getElementById('pr-subtotal').textContent = fmtMoneyC(sub, currency);
+  document.getElementById('pr-tva').textContent = `${fmtMoneyC(tvaAmt, currency)} (${tvaRate}%)`;
+  document.getElementById('pr-total').textContent = fmtMoneyC(total, currency);
   document.getElementById('pr-notes').textContent = document.getElementById('f-notes').value || 'Merci pour votre confiance.';
 }
 function saveInvoice() {
@@ -1395,6 +1503,15 @@ function saveInvoice() {
   if (!num || !client) { toast('Numéro et client requis', true); return; }
   if (!editingId) {
     const plan = currentUser?.plan || 'starter';
+    // Client limit: Starter max 10 unique clients
+    if (plan === 'starter') {
+      const uniqueClients = new Set(invoices.map(i => i.client.toLowerCase().trim()));
+      if (!uniqueClients.has(client.toLowerCase().trim()) && uniqueClients.size >= 10) {
+        toast('Limite atteinte (10 clients) — passez au plan Pro', true);
+        openModal('modal-upgrade');
+        return;
+      }
+    }
     const limits = { starter: 30, pro: 150, business: null };
     const limit = limits[plan];
     if (limit !== null) {
@@ -1418,6 +1535,7 @@ function saveInvoice() {
     date: document.getElementById('f-date').value, due: document.getElementById('f-due').value,
     status: document.getElementById('f-status').value,
     tva: tvaRate, notes: document.getElementById('f-notes').value,
+    currency: (currentUser?.plan === 'business' && document.getElementById('f-currency')) ? document.getElementById('f-currency').value : 'EUR',
     items: lineItems.map(l=>({...l})),
     subtotal: sub, tvaAmt, total: sub + tvaAmt
   };
@@ -1555,6 +1673,96 @@ function appendMsg(text, cls) {
   msgs.appendChild(el);
   msgs.scrollTop = msgs.scrollHeight;
   return el;
+}
+
+// ─── SUPPORT ──────────────────────────────────────────────────────────────────
+function showSupport() {
+  const plan = currentUser?.plan || 'starter';
+  const subject = plan === 'business' ? 'Support prioritaire FacturAI Business' : 'Support FacturAI';
+  const body = plan === 'business' ? '\n\n[Support prioritaire — réponse sous 4h]' : '';
+  if (plan === 'business') toast('Support prioritaire — réponse sous 4h ✨');
+  window.open('mailto:support@facturai.tech?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body));
+}
+
+// ─── ONBOARDING ───────────────────────────────────────────────────────────────
+function showOnboarding() {
+  const biz = document.getElementById('onboarding-business');
+  if (biz) biz.style.display = (currentUser?.plan === 'business') ? '' : 'none';
+  openModal('modal-onboarding');
+}
+function closeOnboarding() {
+  closeModal('modal-onboarding');
+  if (currentUser) localStorage.setItem('facturo_onboarded_' + currentUser.email, '1');
+}
+
+// ─── RAPPORTS ─────────────────────────────────────────────────────────────────
+function renderRapports() {
+  const today = new Date();
+  const content = document.getElementById('rapportsContent');
+  const months = [];
+  for (let i=11;i>=0;i--) {
+    const d = new Date(today.getFullYear(), today.getMonth()-i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    const label = d.toLocaleDateString('fr-FR',{month:'short',year:'2-digit'});
+    const val = invoices.filter(inv => inv.date && inv.date.startsWith(key)).reduce((s,inv) => s+inv.total, 0);
+    months.push({label,val});
+  }
+  const maxVal = Math.max(...months.map(m=>m.val), 1);
+  const clientCA = {};
+  invoices.forEach(inv => { if (inv.status==='paid') clientCA[inv.client] = (clientCA[inv.client]||0) + inv.total; });
+  const top3 = Object.entries(clientCA).sort((a,b)=>b[1]-a[1]).slice(0,3);
+  const totalFacture = invoices.reduce((s,i) => s+i.total, 0);
+  const totalPaid = invoices.filter(i=>i.status==='paid').reduce((s,i) => s+i.total, 0);
+  const tauxEnc = totalFacture > 0 ? Math.round(totalPaid/totalFacture*100) : 0;
+  const overdue = invoices.filter(i=>i.status==='overdue');
+  const r0_30 = overdue.filter(i => { const d=Math.round((today-new Date(i.due))/86400000); return d>=0&&d<=30; });
+  const r30_60 = overdue.filter(i => { const d=Math.round((today-new Date(i.due))/86400000); return d>30&&d<=60; });
+  const r60 = overdue.filter(i => { const d=Math.round((today-new Date(i.due))/86400000); return d>60; });
+  const tauxColor = tauxEnc>=80?'var(--primary)':tauxEnc>=50?'var(--orange)':'var(--red)';
+  content.innerHTML = `
+    <div style="display:grid;gap:20px;">
+      <div class="card">
+        <div class="card-title">CA facturation — 12 derniers mois</div>
+        <div class="chart-wrap" style="height:160px;gap:4px;">
+          ${months.map(m=>`<div class="bar-group">
+            <div class="bar-val" style="font-size:9px;">${m.val?(m.val/1000).toFixed(1)+'k':''}</div>
+            <div class="bar" style="height:${Math.round((m.val/maxVal)*130)+4}px;background:var(--primary);opacity:.8;"></div>
+            <div class="bar-label" style="font-size:9px;">${m.label}</div>
+          </div>`).join('')}
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+        <div class="card">
+          <div class="card-title">Top 3 clients (CA payé)</div>
+          ${top3.length ? top3.map(([name,ca],i)=>`
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:24px;height:24px;border-radius:50%;background:var(--primary-light);color:var(--primary);font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center;">${i+1}</div>
+                <span style="font-size:13px;font-weight:500;">${name}</span>
+              </div>
+              <span style="font-size:13px;font-weight:600;color:var(--primary);">${fmtMoney(ca)}</span>
+            </div>`).join('') : '<p style="color:var(--muted);font-size:13px;padding:10px 0;">Aucune facture payée.</p>'}
+        </div>
+        <div style="display:grid;gap:16px;">
+          <div class="card">
+            <div class="card-title">Taux d'encaissement</div>
+            <div style="font-size:36px;font-weight:800;color:${tauxColor};">${tauxEnc}%</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:4px;">${fmtMoney(totalPaid)} / ${fmtMoney(totalFacture)}</div>
+            <div style="height:6px;background:var(--border);border-radius:3px;margin-top:10px;overflow:hidden;">
+              <div style="height:100%;width:${tauxEnc}%;background:${tauxColor};border-radius:3px;"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">Retards par ancienneté</div>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;">0–30 jours</span><span class="badge badge-pending">${r0_30.length} facture${r0_30.length!==1?'s':''}</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;">30–60 jours</span><span class="badge badge-overdue">${r30_60.length} facture${r30_60.length!==1?'s':''}</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:center;"><span style="font-size:13px;">60+ jours</span><span class="badge" style="background:#7f1d1d;color:#fca5a5;">${r60.length} facture${r60.length!==1?'s':''}</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>`;
 }
 
 // ─── CSV EXPORT ───────────────────────────────────────────────────────────────
