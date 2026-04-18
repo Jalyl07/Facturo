@@ -888,6 +888,11 @@ function showRegister(plan) {
 }
 
 function startApp() {
+  if (currentUser.email === 'jalylnestor228@gmail.com') {
+    currentUser.paid = true;
+    currentUser.plan = 'business';
+    localStorage.setItem('facturo_session', JSON.stringify(currentUser));
+  }
   // Block dashboard if payment not done (backend users only)
   if (currentUser.token !== 'local' && !currentUser.paid) {
     console.log('[Auth] Utilisateur non payé — affichage écran abonnement requis');
@@ -973,8 +978,8 @@ async function doLogin() {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.erreur || 'Erreur de connexion');
-    // Returning user: already paid
-    currentUser = { email: data.utilisateur.email, nom: data.utilisateur.nom, plan: data.utilisateur.plan || 'starter', token: data.token, paid: true };
+    const isAdmin = data.utilisateur.email === 'jalylnestor228@gmail.com';
+    currentUser = { email: data.utilisateur.email, nom: data.utilisateur.nom, plan: isAdmin ? 'business' : (data.utilisateur.plan || 'starter'), token: data.token, paid: true };
     localStorage.setItem('facturo_session', JSON.stringify(currentUser));
     console.log('[Auth] Connexion réussie:', currentUser.email, 'plan:', currentUser.plan);
     startApp();
@@ -985,7 +990,8 @@ async function doLogin() {
     if (localUser) {
       const hash = await simpleHash(password);
       if (hash === localUser.passwordHash) {
-        currentUser = { email: localUser.email, nom: localUser.nom, plan: localUser.plan, token: 'local', paid: true };
+        const isAdmin = localUser.email === 'jalylnestor228@gmail.com';
+        currentUser = { email: localUser.email, nom: localUser.nom, plan: isAdmin ? 'business' : localUser.plan, token: 'local', paid: true };
         localStorage.setItem('facturo_session', JSON.stringify(currentUser));
         startApp(); return;
       }
