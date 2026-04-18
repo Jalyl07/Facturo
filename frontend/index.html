@@ -47,7 +47,7 @@ nav{flex:1;padding:16px 0;}
 .page{display:none;}
 .page.active{display:block;}
 /* DASHBOARD */
-.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;margin-bottom:28px;}
 .kpi-card{background:var(--white);border-radius:12px;padding:20px;box-shadow:var(--shadow);}
 .kpi-label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;}
 .kpi-value{font-size:28px;font-weight:700;color:var(--text);}
@@ -559,6 +559,9 @@ textarea{resize:vertical;min-height:70px;}
     <div class="nav-item" data-page="chat" id="nav-chat">
       <span class="nav-icon">💬</span> Assistant IA
     </div>
+    <div class="nav-item" data-page="risque" id="nav-risque">
+      <span class="nav-icon">⚠️</span> Risque clients
+    </div>
   </nav>
   <div class="sidebar-footer">
     <div style="margin-bottom:10px;">
@@ -619,6 +622,11 @@ textarea{resize:vertical;min-height:70px;}
           <div class="kpi-value" id="kpi-paid">0 €</div>
           <div class="kpi-sub up" id="kpi-paid-sub">0 factures</div>
         </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Factures ce mois</div>
+          <div class="kpi-value" id="kpi-counter">0/30</div>
+          <div class="kpi-sub" id="kpi-counter-sub">Plan Starter</div>
+        </div>
       </div>
       <div class="dashboard-grid">
         <div class="card">
@@ -647,6 +655,7 @@ textarea{resize:vertical;min-height:70px;}
             <option value="overdue">En retard</option>
             <option value="draft">Brouillon</option>
           </select>
+          <button class="btn btn-ghost" onclick="exportCSV()">⬇️ Exporter CSV</button>
           <button class="btn btn-primary" onclick="showPage('create')">+ Nouvelle</button>
         </div>
       </div>
@@ -822,6 +831,11 @@ textarea{resize:vertical;min-height:70px;}
       </div>
     </div>
 
+    <!-- RISQUE CLIENTS -->
+    <div class="page" id="page-risque">
+      <div id="risqueGrid"></div>
+    </div>
+
   </div><!-- /content -->
 </div><!-- /main -->
 
@@ -925,7 +939,7 @@ function updateSidebarUser() {
     badge.className = 'sidebar-badge plan-badge-' + (currentUser.plan || 'starter');
   }
   // Lock icon on AI nav items for starter users
-  ['nav-relances', 'nav-chat'].forEach(id => {
+  ['nav-relances', 'nav-chat', 'nav-risque'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
     const existing = el.querySelector('.lock-icon');
@@ -1183,9 +1197,9 @@ function fmtMoney(n) { return n.toLocaleString('fr-FR',{minimumFractionDigits:2,
 function fmtDate(d) { if(!d) return '—'; const p=d.split('-'); return `${p[2]}/${p[1]}/${p[0]}`; }
 
 // ─── NAVIGATION ──────────────────────────────────────────────────────────────
-const pageTitles = {dashboard:'Tableau de bord',invoices:'Factures',create:'Nouvelle facture',relances:'Relances IA',chat:'Assistant IA'};
+const pageTitles = {dashboard:'Tableau de bord',invoices:'Factures',create:'Nouvelle facture',relances:'Relances IA',chat:'Assistant IA',risque:'Risque clients'};
 function showPage(id) {
-  if ((id === 'relances' || id === 'chat') && !checkAIPlan()) return;
+  if ((id === 'relances' || id === 'chat' || id === 'risque') && !checkAIPlan()) return;
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + id).classList.add('active');
@@ -1194,6 +1208,7 @@ function showPage(id) {
   if (id === 'dashboard') renderDashboard();
   if (id === 'invoices') renderInvoices(invoices);
   if (id === 'relances') renderRelances();
+  if (id === 'risque') renderRisque();
   if (id === 'create' && !editingId) initForm();
 }
 document.querySelectorAll('.nav-item').forEach(el => {
@@ -1215,6 +1230,14 @@ function renderDashboard() {
   document.getElementById('kpi-overdue-sub').textContent = `${overdue.length} en retard`;
   document.getElementById('kpi-paid').textContent = fmtMoney(allPaid.reduce((s,i)=>s+i.total,0));
   document.getElementById('kpi-paid-sub').textContent = `${allPaid.length} facture${allPaid.length!==1?'s':''}`;
+  const plan = currentUser?.plan || 'starter';
+  const limits = { starter: 30, pro: 150, business: null };
+  const limit = limits[plan];
+  const countThisMonth = invoices.filter(i => i.date && i.date.startsWith(thisMonth)).length;
+  const counterEl = document.getElementById('kpi-counter');
+  counterEl.textContent = limit ? `${countThisMonth}/${limit}` : `${countThisMonth}/∞`;
+  counterEl.style.color = (limit && countThisMonth >= limit) ? 'var(--red)' : (limit && countThisMonth >= limit * 0.8) ? 'var(--orange)' : 'var(--text)';
+  document.getElementById('kpi-counter-sub').textContent = `Plan ${plan.charAt(0).toUpperCase()+plan.slice(1)}`;
   const months = [];
   for (let i=5;i>=0;i--) {
     const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
@@ -1360,6 +1383,22 @@ function saveInvoice() {
   const num = document.getElementById('f-num').value.trim();
   const client = document.getElementById('f-client').value.trim();
   if (!num || !client) { toast('Numéro et client requis', true); return; }
+  if (!editingId) {
+    const plan = currentUser?.plan || 'starter';
+    const limits = { starter: 30, pro: 150, business: null };
+    const limit = limits[plan];
+    if (limit !== null) {
+      const now = new Date();
+      const thisMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+      const countThisMonth = invoices.filter(i => i.date && i.date.startsWith(thisMonth)).length;
+      if (countThisMonth >= limit) {
+        const next = plan === 'starter' ? 'Pro' : 'Business';
+        toast(`Limite atteinte (${limit}/mois) — passez au plan ${next}`, true);
+        openModal('modal-upgrade');
+        return;
+      }
+    }
+  }
   const sub = getSubtotal();
   const tvaRate = +(document.getElementById('f-tva').value||0);
   const tvaAmt = sub * tvaRate / 100;
@@ -1506,6 +1545,74 @@ function appendMsg(text, cls) {
   msgs.appendChild(el);
   msgs.scrollTop = msgs.scrollHeight;
   return el;
+}
+
+// ─── CSV EXPORT ───────────────────────────────────────────────────────────────
+function exportCSV() {
+  if (!checkAIPlan()) return;
+  const headers = ['Numéro','Client','Date','Échéance','Montant HT','TVA','Total TTC','Statut'];
+  const rows = invoices.map(i => [
+    i.id, i.client, i.date, i.due,
+    (i.subtotal||0).toFixed(2), i.tva + '%', (i.total||0).toFixed(2), statusLabel(i.status)
+  ]);
+  const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `factures_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Export CSV téléchargé');
+}
+
+// ─── RISQUE CLIENTS ──────────────────────────────────────────────────────────
+function renderRisque() {
+  const today = new Date();
+  const clients = {};
+  invoices.forEach(inv => {
+    if (!clients[inv.client]) clients[inv.client] = { name: inv.client, email: inv.email, invoices: [], retards: 0, maxDelay: 0, totalImpaye: 0 };
+    const c = clients[inv.client];
+    c.invoices.push(inv);
+    if (inv.status === 'overdue') {
+      c.retards++;
+      const delay = Math.round((today - new Date(inv.due)) / 86400000);
+      c.maxDelay = Math.max(c.maxDelay, delay);
+      c.totalImpaye += inv.total;
+    } else if (inv.status === 'pending') {
+      const delay = Math.round((today - new Date(inv.due)) / 86400000);
+      if (delay > 30) { c.retards++; c.maxDelay = Math.max(c.maxDelay, delay); c.totalImpaye += inv.total; }
+    }
+  });
+  const clientList = Object.values(clients).map(c => {
+    let risk = 'faible';
+    if (c.retards >= 2 || c.maxDelay > 30) risk = 'eleve';
+    else if (c.retards === 1) risk = 'modere';
+    return { ...c, risk };
+  }).sort((a,b) => ['eleve','modere','faible'].indexOf(a.risk) - ['eleve','modere','faible'].indexOf(b.risk));
+  const riskLabel = { faible: '✅ Faible', modere: '⚠️ Modéré', eleve: '🔴 Élevé' };
+  const riskBadge = { faible: 'badge-paid', modere: 'badge-pending', eleve: 'badge-overdue' };
+  const riskBorder = { faible: '#166534', modere: '#f59e0b', eleve: '#ef4444' };
+  const grid = document.getElementById('risqueGrid');
+  if (!clientList.length) { grid.innerHTML = '<p style="color:var(--muted);font-size:14px;">Aucun client trouvé.</p>'; return; }
+  grid.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;">
+    ${clientList.map(c => `
+    <div style="background:var(--white);border-radius:12px;padding:20px;box-shadow:var(--shadow);border-left:4px solid ${riskBorder[c.risk]};">
+      <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px;">
+        <div>
+          <div style="font-weight:600;font-size:14px;">${c.name}</div>
+          <div style="font-size:12px;color:var(--muted);">${c.email}</div>
+        </div>
+        <span class="badge ${riskBadge[c.risk]}">${riskLabel[c.risk]}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
+        <div><div style="color:var(--muted);margin-bottom:2px;">Factures</div><div style="font-weight:600;">${c.invoices.length}</div></div>
+        <div><div style="color:var(--muted);margin-bottom:2px;">Retards</div><div style="font-weight:600;color:${c.retards>0?'var(--red)':'var(--text)'};">${c.retards}</div></div>
+        <div><div style="color:var(--muted);margin-bottom:2px;">Délai max</div><div style="font-weight:600;">${c.maxDelay > 0 ? c.maxDelay + ' j' : '—'}</div></div>
+        <div><div style="color:var(--muted);margin-bottom:2px;">Impayés</div><div style="font-weight:600;color:${c.totalImpaye>0?'var(--red)':'var(--text)'};">${c.totalImpaye > 0 ? fmtMoney(c.totalImpaye) : '—'}</div></div>
+      </div>
+    </div>`).join('')}
+  </div>`;
 }
 
 // ─── CLAUDE API ───────────────────────────────────────────────────────────────
