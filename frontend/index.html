@@ -17,7 +17,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(
 .logo{padding:24px 20px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(255,255,255,.08);}
 .logo-icon{width:34px;height:34px;background:var(--primary);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px;}
 .logo-text{color:#fff;font-weight:700;font-size:18px;letter-spacing:.5px;}
-nav{flex:1;padding:16px 0;}
+nav{flex:1;padding:16px 0;overflow-y:auto;min-height:0;}
 .nav-section{padding:6px 16px;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.35);margin-top:8px;}
 .nav-item{display:flex;align-items:center;gap:12px;padding:10px 20px;cursor:pointer;color:rgba(255,255,255,.65);font-size:14px;transition:all .15s;position:relative;}
 .nav-item:hover{background:rgba(255,255,255,.06);color:#fff;}
@@ -25,7 +25,7 @@ nav{flex:1;padding:16px 0;}
 .nav-item.active::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--primary);border-radius:0 3px 3px 0;}
 .nav-icon{width:18px;text-align:center;font-size:16px;}
 .lock-icon{margin-left:auto;font-size:11px;opacity:.5;}
-.sidebar-footer{padding:16px 20px;border-top:1px solid rgba(255,255,255,.08);}
+.sidebar-footer{padding:16px 20px;border-top:1px solid rgba(255,255,255,.08);flex-shrink:0;}
 .sidebar-badge{border-radius:6px;padding:6px 10px;font-size:11px;text-align:center;}
 .plan-badge-starter{background:rgba(107,114,128,.15);color:#9ca3af;}
 .plan-badge-pro{background:rgba(59,130,246,.15);color:#60a5fa;}
