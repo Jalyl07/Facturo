@@ -4,6 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>FacturAI</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 :root{--primary:#1D9E75;--primary-dark:#157a5a;--primary-light:#e8f7f2;--bg:#f7f8fa;--sidebar:#111827;--text:#1a1a2e;--muted:#6b7280;--border:#e5e7eb;--white:#fff;--red:#ef4444;--orange:#f59e0b;--blue:#3b82f6;--shadow:0 1px 3px rgba(0,0,0,.08);}
@@ -939,6 +940,29 @@ textarea{resize:vertical;min-height:70px;}
   </div>
 </div>
 
+<!-- EMAIL MODAL -->
+<div class="modal-overlay" id="modal-email">
+  <div class="modal">
+    <div class="modal-title">📧 Envoyer la facture par email</div>
+    <div class="form-group">
+      <label>Destinataire</label>
+      <input type="email" id="email-to" placeholder="client@entreprise.fr"/>
+    </div>
+    <div class="form-group">
+      <label>Objet</label>
+      <input type="text" id="email-subject" placeholder="Facture …"/>
+    </div>
+    <div class="form-group">
+      <label>Message</label>
+      <textarea id="email-body" rows="6" style="min-height:120px;"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-email')">Annuler</button>
+      <button class="btn btn-primary" onclick="doSendEmail()">📧 Ouvrir dans ma messagerie</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -1396,6 +1420,8 @@ function renderInvoices(list) {
       <td data-label="Statut"><span class="badge badge-${i.status}">${statusLabel(i.status)}</span></td>
       <td data-label="">
         <button class="btn btn-ghost btn-sm" onclick="editInvoice('${i.id}')">✏️</button>
+        <button class="btn btn-ghost btn-sm" onclick="downloadPDF('${i.id}')" title="Télécharger PDF">⬇️ PDF</button>
+        <button class="btn btn-ghost btn-sm" onclick="openEmailModal('${i.id}')" title="Envoyer par email">📧</button>
         <button class="btn btn-ghost btn-sm" onclick="deleteInvoice('${i.id}')">🗑️</button>
       </td>
     </tr>
@@ -1437,7 +1463,9 @@ function initForm() {
   editingId = null;
   const now = new Date();
   const due = new Date(now); due.setDate(due.getDate()+30);
-  const nextNum = 'FAC-' + now.getFullYear() + '-' + String(invoices.length+1).padStart(3,'0');
+  const yearStr = String(now.getFullYear());
+  const countThisYear = invoices.filter(i => i.id && i.id.startsWith('FAC-' + yearStr + '-')).length;
+  const nextNum = 'FAC-' + yearStr + '-' + String(countThisYear + 1).padStart(3,'0');
   document.getElementById('f-num').value = nextNum;
   document.getElementById('f-status').value = 'draft';
   document.getElementById('f-date').value = now.toISOString().split('T')[0];
@@ -1848,6 +1876,178 @@ async function callClaude(messages, system) {
   }
   const data = await res.json();
   return data.text || '';
+}
+
+// ─── PDF DOWNLOAD ─────────────────────────────────────────────────────────────
+function downloadPDF(invoiceId) {
+  const inv = invoices.find(i => i.id === invoiceId);
+  if (!inv) return;
+  if (!window.jspdf) { toast('jsPDF non chargé — réessayez dans un instant', true); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const W = 210, margin = 18;
+  const primary = [29, 158, 117];
+  const muted = [107, 114, 128];
+  const dark = [26, 26, 46];
+  const sym = { EUR: '€', USD: '$', GBP: '£', CHF: 'Fr' };
+  const currency = inv.currency || 'EUR';
+  const cs = sym[currency] || '€';
+  function fmt(n) {
+    const v = (n||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2});
+    return currency !== 'EUR' ? cs + '\u00a0' + v : v + ' ' + cs;
+  }
+
+  // Header bar
+  doc.setFillColor(...primary);
+  doc.rect(0, 0, W, 28, 'F');
+
+  // Logo + company name
+  doc.setFillColor(255,255,255);
+  doc.roundedRect(margin, 8, 12, 12, 2, 2, 'F');
+  doc.setTextColor(...primary);
+  doc.setFontSize(10); doc.setFont('helvetica','bold');
+  doc.text('F', margin + 4.2, 16.6);
+
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(16); doc.setFont('helvetica','bold');
+  doc.text('FacturAI', margin + 16, 17);
+
+  // Invoice label top-right
+  doc.setFontSize(9); doc.setFont('helvetica','normal');
+  doc.text(inv.id, W - margin, 11, { align: 'right' });
+  doc.setFontSize(8);
+  doc.text('Date : ' + fmtDate(inv.date), W - margin, 17, { align: 'right' });
+  doc.text('Échéance : ' + fmtDate(inv.due), W - margin, 22, { align: 'right' });
+
+  // FACTURE title
+  doc.setTextColor(...dark);
+  doc.setFontSize(22); doc.setFont('helvetica','bold');
+  doc.text('FACTURE', margin, 42);
+
+  doc.setDrawColor(...primary);
+  doc.setLineWidth(0.6);
+  doc.line(margin, 45, W - margin, 45);
+
+  // Parties
+  let y = 52;
+  doc.setFontSize(8); doc.setFont('helvetica','bold'); doc.setTextColor(...muted);
+  doc.text('ÉMETTEUR', margin, y);
+  doc.text('CLIENT', W/2 + 4, y);
+
+  y += 5;
+  doc.setTextColor(...dark);
+  doc.setFontSize(10); doc.setFont('helvetica','bold');
+  const emitterName = (currentUser?.entreprise || currentUser?.nom || 'Votre Entreprise');
+  doc.text(emitterName, margin, y);
+  doc.text(inv.client, W/2 + 4, y);
+
+  y += 5;
+  doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(...muted);
+  doc.text(currentUser?.email || '', margin, y);
+  doc.text(inv.email || '', W/2 + 4, y);
+
+  if (inv.address) {
+    y += 5;
+    const addrLines = doc.splitTextToSize(inv.address, 75);
+    doc.text(addrLines, W/2 + 4, y);
+    y += addrLines.length * 4.5;
+  } else { y += 4; }
+
+  // Items table header
+  y += 8;
+  doc.setFillColor(...primary);
+  doc.rect(margin, y, W - margin*2, 8, 'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(8.5); doc.setFont('helvetica','bold');
+  doc.text('Description', margin + 3, y + 5.5);
+  doc.text('Qté', margin + 100, y + 5.5, { align: 'right' });
+  doc.text('Prix HT', margin + 128, y + 5.5, { align: 'right' });
+  doc.text('Total HT', W - margin - 2, y + 5.5, { align: 'right' });
+
+  y += 8;
+  doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(...dark);
+  inv.items.forEach((item, idx) => {
+    const rowH = 7;
+    if (idx % 2 === 0) { doc.setFillColor(249,250,251); doc.rect(margin, y, W - margin*2, rowH, 'F'); }
+    doc.text(item.desc || '—', margin + 3, y + 4.8);
+    doc.text(String(item.qty), margin + 100, y + 4.8, { align: 'right' });
+    doc.text(fmt(item.price), margin + 128, y + 4.8, { align: 'right' });
+    doc.text(fmt(item.qty * item.price), W - margin - 2, y + 4.8, { align: 'right' });
+    y += rowH;
+  });
+
+  // Totals box (right-aligned)
+  y += 6;
+  const tvaRate = inv.tva || 20;
+  const sub = inv.subtotal || 0;
+  const tvaAmt = inv.tvaAmt || 0;
+  const total = inv.total || 0;
+
+  const bx = W - margin - 70, bw = 70;
+  doc.setDrawColor(220,220,220); doc.setLineWidth(0.3);
+  doc.rect(bx, y, bw, 22);
+
+  doc.setFontSize(9); doc.setFont('helvetica','normal'); doc.setTextColor(...muted);
+  doc.text('Sous-total HT', bx + 3, y + 5.5);
+  doc.text(`TVA (${tvaRate}%)`, bx + 3, y + 11.5);
+  doc.setTextColor(...dark);
+  doc.text(fmt(sub), bx + bw - 3, y + 5.5, { align: 'right' });
+  doc.text(fmt(tvaAmt), bx + bw - 3, y + 11.5, { align: 'right' });
+
+  doc.setFillColor(...primary);
+  doc.rect(bx, y + 14, bw, 8, 'F');
+  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(9.5);
+  doc.text('Total TTC', bx + 3, y + 19.5);
+  doc.text(fmt(total), bx + bw - 3, y + 19.5, { align: 'right' });
+
+  // Notes
+  if (inv.notes) {
+    y += 32;
+    doc.setFontSize(8.5); doc.setFont('helvetica','bold'); doc.setTextColor(...muted);
+    doc.text('CONDITIONS DE PAIEMENT', margin, y);
+    y += 4;
+    doc.setFont('helvetica','normal'); doc.setTextColor(...dark);
+    doc.text(doc.splitTextToSize(inv.notes, W - margin*2), margin, y);
+  }
+
+  // Legal footer
+  const footerY = 272;
+  doc.setDrawColor(...muted); doc.setLineWidth(0.3);
+  doc.line(margin, footerY, W - margin, footerY);
+  doc.setFontSize(7.5); doc.setFont('helvetica','normal'); doc.setTextColor(...muted);
+  doc.text('Facture conforme aux articles L441-1 et suivants du Code de commerce.', W/2, footerY + 4, { align: 'center' });
+  doc.text(`En cas de retard de paiement, des pénalités au taux légal en vigueur seront appliquées.`, W/2, footerY + 8, { align: 'center' });
+  doc.text(`FacturAI — ${currentUser?.email || ''} — Généré le ${new Date().toLocaleDateString('fr-FR')}`, W/2, footerY + 12, { align: 'center' });
+
+  doc.save(`facture_${inv.id}.pdf`);
+  toast('PDF téléchargé : facture_' + inv.id + '.pdf');
+}
+
+// ─── EMAIL SEND ───────────────────────────────────────────────────────────────
+let _emailInvoiceId = null;
+function openEmailModal(invoiceId) {
+  const inv = invoices.find(i => i.id === invoiceId);
+  if (!inv) return;
+  _emailInvoiceId = invoiceId;
+  const currency = inv.currency || 'EUR';
+  const sym = { EUR: '€', USD: '$', GBP: '£', CHF: 'Fr' };
+  const cs = sym[currency] || '€';
+  const totalStr = (inv.total||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' ' + cs;
+  document.getElementById('email-to').value = inv.email || '';
+  document.getElementById('email-subject').value = `Facture ${inv.id} — ${totalStr}`;
+  const emitter = currentUser?.entreprise || currentUser?.nom || 'FacturAI';
+  document.getElementById('email-body').value =
+    `Bonjour,\n\nVeuillez trouver ci-joint la facture ${inv.id} d'un montant de ${totalStr}, émise le ${fmtDate(inv.date)} et à régler avant le ${fmtDate(inv.due)}.\n\nN'hésitez pas à me contacter pour toute question.\n\nCordialement,\n${emitter}`;
+  openModal('modal-email');
+}
+function doSendEmail() {
+  const to = document.getElementById('email-to').value.trim();
+  const subject = document.getElementById('email-subject').value.trim();
+  const body = document.getElementById('email-body').value;
+  if (!to) { toast('Adresse email requise', true); return; }
+  window.open('mailto:' + encodeURIComponent(to) + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body));
+  closeModal('modal-email');
+  toast('Messagerie ouverte');
 }
 
 // ─── UTILS ────────────────────────────────────────────────────────────────────
