@@ -53,18 +53,21 @@ const creerSessionAbonnement = async (req, res) => {
   }
 };
 
-// POST /api/stripe/portail-client
+// POST /api/stripe/portail-client  (alias: portal-session)
 const portalClient = async (req, res) => {
+  if (!req.utilisateur.stripe_customer_id) {
+    return res.status(400).json({ erreur: 'Aucun identifiant client Stripe associé à ce compte. Souscrivez d\'abord à un plan.' });
+  }
   try {
     const session = await stripe.billingPortal.sessions.create({
       customer: req.utilisateur.stripe_customer_id,
-      return_url: `${process.env.FRONTEND_URL}/parametres/abonnement`
+      return_url: process.env.FRONTEND_URL || 'https://facturai.tech'
     });
-
+    console.log(`[Stripe] Portail client créé pour user=${req.utilisateur.id} → ${session.url}`);
     res.json({ url: session.url });
   } catch (err) {
     console.error('Erreur portail Stripe:', err);
-    res.status(500).json({ erreur: 'Erreur lors de l\'accès au portail de facturation' });
+    res.status(500).json({ erreur: 'Erreur lors de l\'accès au portail de facturation : ' + err.message });
   }
 };
 

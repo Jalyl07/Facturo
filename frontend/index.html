@@ -771,6 +771,9 @@ textarea{resize:vertical;min-height:70px;}
     <button id="upgrade-btn" onclick="showUpgradeOptions()" style="display:none;width:100%;background:var(--primary);color:#fff;border:none;border-radius:6px;padding:7px 10px;font-size:12px;font-weight:600;cursor:pointer;">
       ⭐ Upgrader mon plan
     </button>
+    <button id="billing-portal-btn" onclick="openBillingPortal()" style="display:none;width:100%;background:none;border:1px solid rgba(255,255,255,.18);color:rgba(255,255,255,.7);border-radius:6px;padding:7px 10px;font-size:12px;cursor:pointer;margin-top:6px;transition:all .15s;" onmouseover="this.style.background='rgba(255,255,255,.06)'" onmouseout="this.style.background='none'">
+      💳 Gérer mon abonnement
+    </button>
     <button id="support-btn" onclick="showSupport()" style="width:100%;background:none;border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.5);border-radius:6px;padding:7px 10px;font-size:12px;cursor:pointer;margin-top:6px;transition:all .15s;" onmouseover="this.style.background='rgba(255,255,255,.06)'" onmouseout="this.style.background='none'">
       💬 Contacter le support
     </button>
@@ -1348,6 +1351,9 @@ function updateSidebarUser() {
   // Show/hide upgrade button
   const upgradeBtn = document.getElementById('upgrade-btn');
   if (upgradeBtn) upgradeBtn.style.display = currentUser.plan === 'starter' ? 'block' : 'none';
+  // Show billing portal button for real (non-local) accounts
+  const billingBtn = document.getElementById('billing-portal-btn');
+  if (billingBtn) billingBtn.style.display = (currentUser.token && currentUser.token !== 'local') ? 'block' : 'none';
 }
 
 async function doLogin() {
@@ -1458,6 +1464,23 @@ function upgradeToP(plan) {
 
 function showUpgradeOptions() {
   openModal('modal-upgrade');
+}
+
+// ─── BILLING PORTAL ──────────────────────────────────────────────────────────
+async function openBillingPortal() {
+  if (!currentUser || currentUser.token === 'local') {
+    toast('Disponible uniquement avec un compte en ligne', true); return;
+  }
+  const btn = document.getElementById('billing-portal-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Redirection…'; }
+  try {
+    const data = await apiCall('POST', '/api/stripe/portal-session', {});
+    if (data.url) { window.location.href = data.url; }
+    else throw new Error('URL manquante dans la réponse');
+  } catch(e) {
+    toast('Erreur portail : ' + e.message, true);
+    if (btn) { btn.disabled = false; btn.textContent = '💳 Gérer mon abonnement'; }
+  }
 }
 
 // ─── STRIPE ───────────────────────────────────────────────────────────────────

@@ -19,5 +19,6 @@ router.get('/abonnement', obtenirAbonnement);
 router.post('/creer-session-abonnement', creerSessionAbonnement);
 router.post('/create-checkout-session', creerSessionAbonnement);
 router.post('/portail-client', portalClient);
+router.post('/portal-session', portalClient);
 
 module.exports = router;
