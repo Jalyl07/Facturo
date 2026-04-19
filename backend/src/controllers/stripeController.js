@@ -40,8 +40,8 @@ const creerSessionAbonnement = async (req, res) => {
       payment_method_types: ['card'],
       mode: 'subscription',
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${process.env.FRONTEND_URL}/success?plan=${plan}&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.FRONTEND_URL}/`,
+      success_url: `https://frontend-two-khaki-14.vercel.app/success?plan=${plan}&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `https://frontend-two-khaki-14.vercel.app/`,
       metadata: { utilisateur_id: String(req.utilisateur.id), plan }
     });
 
