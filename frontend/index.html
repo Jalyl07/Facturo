@@ -255,6 +255,17 @@ textarea{resize:vertical;min-height:70px;}
 .upgrade-plan-price small{font-size:12px;font-weight:400;color:var(--muted);}
 /* LANDING FOOTER */
 .landing-footer{background:var(--white);border-top:1px solid var(--border);padding:24px 48px;text-align:center;color:var(--muted);font-size:12px;}
+/* LEGAL PAGES */
+.legal-wrap{max-width:760px;margin:0 auto;padding:48px 24px 64px;}
+.legal-back{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:13px;cursor:pointer;margin-bottom:32px;background:none;border:none;padding:0;}
+.legal-back:hover{color:var(--primary);}
+.legal-title{font-size:28px;font-weight:800;color:var(--text);margin-bottom:6px;}
+.legal-date{font-size:12px;color:var(--muted);margin-bottom:36px;}
+.legal-section{margin-bottom:28px;}
+.legal-section h2{font-size:16px;font-weight:700;color:var(--text);margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--primary-light);}
+.legal-section p,.legal-section li{font-size:14px;color:#374151;line-height:1.75;margin-bottom:6px;}
+.legal-section ul{padding-left:20px;}
+.legal-section a{color:var(--primary);}
 
 /* ── RESPONSIVE ── */
 @media(max-width:768px){
@@ -420,7 +431,176 @@ textarea{resize:vertical;min-height:70px;}
       </div>
     </section>
 
-    <footer class="landing-footer">© 2026 FacturAI · IA propulsée par Claude · <a class="auth-link" onclick="showAuthScreen('login')">Connexion</a></footer>
+    <footer class="landing-footer">
+      © 2026 FacturAI · IA propulsée par Claude ·
+      <a class="auth-link" onclick="showAuthScreen('login')">Connexion</a> ·
+      <a class="auth-link" onclick="showAuthScreen('cgv')">CGV</a> ·
+      <a class="auth-link" onclick="showAuthScreen('privacy')">Politique de confidentialité</a>
+    </footer>
+  </div>
+
+  <!-- CGV -->
+  <div id="screen-cgv" class="auth-screen">
+    <nav class="landing-nav">
+      <div class="landing-logo" onclick="showAuthScreen('landing')" style="cursor:pointer;">
+        <div class="landing-logo-icon">F</div>
+        <div class="landing-logo-text">FacturAI</div>
+      </div>
+      <div class="landing-nav-actions">
+        <button class="btn btn-ghost" onclick="showAuthScreen('login')">Se connecter</button>
+        <button class="btn btn-primary" onclick="showAuthScreen('register')">Créer un compte</button>
+      </div>
+    </nav>
+    <div class="legal-wrap">
+      <button class="legal-back" onclick="showAuthScreen('landing')">← Retour à l'accueil</button>
+      <div class="legal-title">Conditions Générales de Vente</div>
+      <div class="legal-date">Dernière mise à jour : avril 2026</div>
+
+      <div class="legal-section">
+        <h2>1. Objet</h2>
+        <p>Les présentes Conditions Générales de Vente (CGV) régissent l'accès et l'utilisation du service FacturAI, logiciel de facturation en ligne propulsé par l'IA, édité par FacturAI (ci-après « l'Éditeur »). Toute souscription à un abonnement vaut acceptation pleine et entière des présentes CGV.</p>
+      </div>
+
+      <div class="legal-section">
+        <h2>2. Description du service</h2>
+        <p>FacturAI est un service SaaS (Software as a Service) permettant aux indépendants, freelances et PME de créer et gérer des factures professionnelles, d'automatiser les relances clients et d'analyser leur activité grâce à l'intelligence artificielle.</p>
+      </div>
+
+      <div class="legal-section">
+        <h2>3. Prix et modalités de paiement</h2>
+        <p>L'accès au service est conditionné à la souscription d'un abonnement mensuel parmi les offres suivantes :</p>
+        <ul>
+          <li><strong>Starter</strong> — 24 € HT/mois : 30 factures/mois, 10 clients maximum, aperçu PDF.</li>
+          <li><strong>Pro</strong> — 49 € HT/mois : 150 factures/mois, clients illimités, relances IA, assistant IA financier.</li>
+          <li><strong>Business</strong> — 89 € HT/mois : factures illimitées, multi-devises, rapports financiers avancés, support prioritaire.</li>
+        </ul>
+        <p>Les prix sont indiqués en euros hors taxes. La TVA applicable est celle en vigueur au moment de la facturation. Le paiement est effectué mensuellement par carte bancaire via Stripe, plateforme de paiement sécurisée.</p>
+      </div>
+
+      <div class="legal-section">
+        <h2>4. Durée et résiliation</h2>
+        <p>Les abonnements sont souscrits sans engagement de durée minimale. L'abonné peut résilier à tout moment depuis son espace client (Paramètres → Abonnement) ou en contactant le support à <a href="mailto:support@facturai.tech">support@facturai.tech</a>. La résiliation prend effet à la fin de la période de facturation en cours ; l'accès au service reste actif jusqu'à cette date.</p>
+      </div>
+
+      <div class="legal-section">
+        <h2>5. Remboursement</h2>
+        <p>Conformément à l'article L221-28 du Code de la consommation, le droit de rétractation ne s'applique pas aux contenus numériques fournis immédiatement après paiement et dont l'exécution a commencé avec l'accord exprès de l'utilisateur. Aucun remboursement n'est accordé pour les paiements déjà effectués, sauf erreur manifeste de facturation de la part de l'Éditeur.</p>
+      </div>
+
+      <div class="legal-section">
+        <h2>6. Responsabilité</h2>
+        <p>L'Éditeur s'engage à maintenir le service disponible avec un objectif de disponibilité de 99 % hors maintenances planifiées. La responsabilité de l'Éditeur ne saurait être engagée en cas de perte de données imputable à l'utilisateur, de force majeure, ou de défaillance d'un prestataire tiers (Stripe, Supabase, Railway, Vercel). En tout état de cause, la responsabilité de l'Éditeur est limitée au montant des abonnements versés au cours des trois derniers mois.</p>
+      </div>
+
+      <div class="legal-section">
+        <h2>7. Propriété intellectuelle</h2>
+        <p>L'ensemble des éléments constitutifs du service (code source, interfaces, marques, textes, algorithmes) sont la propriété exclusive de l'Éditeur et sont protégés par le droit de la propriété intellectuelle français. L'utilisateur conserve la propriété de ses données (factures, clients, documents) et peut en demander l'export ou la suppression à tout moment.</p>
+      </div>
+
+      <div class="legal-section">
+        <h2>8. Droit applicable et juridiction compétente</h2>
+        <p>Les présentes CGV sont soumises au droit français. En cas de litige, et après tentative de résolution amiable, les tribunaux compétents sont ceux du ressort de la Cour d'appel de <strong>Paris</strong>.</p>
+      </div>
+    </div>
+    <footer class="landing-footer">
+      © 2026 FacturAI ·
+      <a class="auth-link" onclick="showAuthScreen('landing')">Accueil</a> ·
+      <a class="auth-link" onclick="showAuthScreen('privacy')">Politique de confidentialité</a>
+    </footer>
+  </div>
+
+  <!-- PRIVACY -->
+  <div id="screen-privacy" class="auth-screen">
+    <nav class="landing-nav">
+      <div class="landing-logo" onclick="showAuthScreen('landing')" style="cursor:pointer;">
+        <div class="landing-logo-icon">F</div>
+        <div class="landing-logo-text">FacturAI</div>
+      </div>
+      <div class="landing-nav-actions">
+        <button class="btn btn-ghost" onclick="showAuthScreen('login')">Se connecter</button>
+        <button class="btn btn-primary" onclick="showAuthScreen('register')">Créer un compte</button>
+      </div>
+    </nav>
+    <div class="legal-wrap">
+      <button class="legal-back" onclick="showAuthScreen('landing')">← Retour à l'accueil</button>
+      <div class="legal-title">Politique de confidentialité</div>
+      <div class="legal-date">Dernière mise à jour : avril 2026 — Conforme au RGPD</div>
+
+      <div class="legal-section">
+        <h2>1. Responsable du traitement</h2>
+        <p>Le responsable du traitement des données personnelles collectées via FacturAI est l'Éditeur du service. Pour toute question relative à vos données personnelles, contactez-nous à l'adresse : <a href="mailto:privacy@facturai.tech">privacy@facturai.tech</a>.</p>
+      </div>
+
+      <div class="legal-section">
+        <h2>2. Données collectées</h2>
+        <p>Dans le cadre de la fourniture du service, nous collectons les données suivantes :</p>
+        <ul>
+          <li><strong>Données d'identification</strong> : nom, prénom, adresse email, nom d'entreprise, numéro SIRET (optionnel).</li>
+          <li><strong>Données de facturation</strong> : factures créées, lignes de prestation, montants, coordonnées clients.</li>
+          <li><strong>Données de paiement</strong> : informations de carte bancaire traitées exclusivement par Stripe (nous ne stockons aucun numéro de carte).</li>
+          <li><strong>Données de connexion</strong> : adresse IP, navigateur, date et heure de connexion (logs techniques).</li>
+        </ul>
+      </div>
+
+      <div class="legal-section">
+        <h2>3. Finalités du traitement</h2>
+        <p>Vos données sont utilisées exclusivement pour :</p>
+        <ul>
+          <li>La fourniture et l'amélioration du service FacturAI.</li>
+          <li>La gestion de votre compte et de votre abonnement.</li>
+          <li>Le traitement des paiements (via Stripe).</li>
+          <li>L'envoi de communications liées au service (confirmations, mises à jour importantes).</li>
+          <li>La conformité à nos obligations légales et comptables.</li>
+        </ul>
+        <p>Nous ne vendons, ne louons ni ne partageons vos données personnelles avec des tiers à des fins commerciales.</p>
+      </div>
+
+      <div class="legal-section">
+        <h2>4. Durée de conservation</h2>
+        <p>Vos données sont conservées pendant toute la durée de votre abonnement actif, puis pendant <strong>3 ans</strong> à compter de la résiliation, conformément aux obligations légales en matière comptable et fiscale. Les données de facturation (factures, clients) sont conservées 10 ans pour répondre aux obligations légales françaises.</p>
+      </div>
+
+      <div class="legal-section">
+        <h2>5. Vos droits (RGPD)</h2>
+        <p>Conformément au Règlement Général sur la Protection des Données (RGPD — UE 2016/679) et à la loi Informatique et Libertés, vous disposez des droits suivants :</p>
+        <ul>
+          <li><strong>Droit d'accès</strong> : obtenir une copie de vos données personnelles.</li>
+          <li><strong>Droit de rectification</strong> : corriger des données inexactes ou incomplètes.</li>
+          <li><strong>Droit à l'effacement</strong> : demander la suppression de vos données (sous réserve des obligations légales de conservation).</li>
+          <li><strong>Droit à la portabilité</strong> : recevoir vos données dans un format structuré et lisible.</li>
+          <li><strong>Droit d'opposition</strong> : vous opposer à certains traitements.</li>
+          <li><strong>Droit à la limitation</strong> : demander la suspension temporaire du traitement.</li>
+        </ul>
+        <p>Pour exercer ces droits, envoyez votre demande à <a href="mailto:privacy@facturai.tech">privacy@facturai.tech</a>. Nous nous engageons à répondre dans un délai d'un mois. En cas de réclamation non résolue, vous pouvez saisir la <strong>CNIL</strong> (Commission Nationale de l'Informatique et des Libertés) sur <a href="https://www.cnil.fr" target="_blank">www.cnil.fr</a>.</p>
+      </div>
+
+      <div class="legal-section">
+        <h2>6. Cookies et stockage local</h2>
+        <p>FacturAI n'utilise <strong>aucun cookie tiers</strong> à des fins de pistage publicitaire ou d'analyse comportementale. Le service utilise uniquement le <strong>localStorage</strong> du navigateur pour stocker votre session d'authentification (token JWT) et vos préférences d'interface. Ces données restent sur votre appareil et ne sont pas transmises à des tiers. Vous pouvez les effacer à tout moment en vidant les données de votre navigateur.</p>
+      </div>
+
+      <div class="legal-section">
+        <h2>7. Sécurité des données</h2>
+        <p>Nous mettons en œuvre des mesures techniques et organisationnelles appropriées pour protéger vos données : chiffrement des communications (HTTPS/TLS), hachage des mots de passe (bcrypt), authentification par token JWT signé, accès restreint aux données par utilisateur (Row Level Security Supabase).</p>
+      </div>
+
+      <div class="legal-section">
+        <h2>8. Sous-traitants et hébergement</h2>
+        <p>Nous faisons appel aux sous-traitants suivants, tous conformes au RGPD :</p>
+        <ul>
+          <li><strong>Vercel</strong> (hébergement frontend) — États-Unis, certifié Privacy Shield.</li>
+          <li><strong>Railway</strong> (hébergement backend) — États-Unis.</li>
+          <li><strong>Supabase</strong> (base de données PostgreSQL) — Union Européenne.</li>
+          <li><strong>Stripe</strong> (paiement en ligne) — États-Unis, certifié PCI-DSS.</li>
+          <li><strong>Anthropic / Claude</strong> (IA) — traitement des requêtes IA uniquement, sans conservation de vos données.</li>
+        </ul>
+      </div>
+    </div>
+    <footer class="landing-footer">
+      © 2026 FacturAI ·
+      <a class="auth-link" onclick="showAuthScreen('landing')">Accueil</a> ·
+      <a class="auth-link" onclick="showAuthScreen('cgv')">CGV</a>
+    </footer>
   </div>
 
   <!-- LOGIN -->
@@ -2262,6 +2442,8 @@ window.addEventListener('resize', syncPreviewVisibility);
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 function initAuth() {
   const path = window.location.pathname;
+  if (path === '/cgv') { showAuthScreen('cgv'); return; }
+  if (path === '/privacy') { showAuthScreen('privacy'); return; }
   const session = JSON.parse(localStorage.getItem('facturo_session') || 'null');
   if (session && session.email) {
     currentUser = session;
@@ -2271,7 +2453,6 @@ function initAuth() {
     }
   }
   if (path === '/success' && !currentUser) {
-    // Payment done but not logged in (e.g. new tab) — just show landing
     showAuthScreen('landing');
     return;
   }
