@@ -363,7 +363,7 @@ textarea{resize:vertical;min-height:70px;}
         <!-- STARTER -->
         <div class="pricing-card">
           <div class="pricing-plan-name">Starter</div>
-          <div class="pricing-price">19€<span>/mois</span></div>
+          <div class="pricing-price">24€<span>/mois</span></div>
           <div class="pricing-desc">Pour les indépendants qui démarrent</div>
           <ul class="pricing-features">
             <li>30 factures par mois</li>
@@ -382,7 +382,7 @@ textarea{resize:vertical;min-height:70px;}
         <div class="pricing-card featured">
           <div class="pricing-featured-badge">Recommandé</div>
           <div class="pricing-plan-name">Pro</div>
-          <div class="pricing-price">39€<span>/mois</span></div>
+          <div class="pricing-price">49€<span>/mois</span></div>
           <div class="pricing-desc">Pour les freelances actifs</div>
           <ul class="pricing-features">
             <li>150 factures par mois</li>
@@ -399,7 +399,7 @@ textarea{resize:vertical;min-height:70px;}
         <!-- BUSINESS -->
         <div class="pricing-card">
           <div class="pricing-plan-name">Business</div>
-          <div class="pricing-price">69€<span>/mois</span></div>
+          <div class="pricing-price">89€<span>/mois</span></div>
           <div class="pricing-desc">Pour les PME en croissance</div>
           <ul class="pricing-features">
             <li>Factures illimitées</li>
@@ -478,9 +478,9 @@ textarea{resize:vertical;min-height:70px;}
         <div class="form-group">
           <label>Plan</label>
           <select id="reg-plan">
-            <option value="starter">Starter — 19€/mois (factures basiques)</option>
-            <option value="pro" selected>Pro — 39€/mois (+ Relances IA · Assistant IA)</option>
-            <option value="business">Business — 69€/mois (illimité + IA)</option>
+            <option value="starter">Starter — 24€/mois (factures basiques)</option>
+            <option value="pro" selected>Pro — 49€/mois (+ Relances IA · Assistant IA)</option>
+            <option value="business">Business — 89€/mois (illimité + IA)</option>
           </select>
         </div>
         <button class="btn btn-primary" style="width:100%;padding:11px;font-size:14px;margin-top:4px;" id="register-btn" onclick="doRegister()">Créer mon compte</button>
@@ -880,12 +880,12 @@ textarea{resize:vertical;min-height:70px;}
     <div class="upgrade-plans">
       <div class="upgrade-plan-btn" onclick="upgradeToP('pro')">
         <div class="upgrade-plan-name">Pro</div>
-        <div class="upgrade-plan-price">39€<small>/mois</small></div>
+        <div class="upgrade-plan-price">49€<small>/mois</small></div>
         <div style="font-size:11px;color:var(--muted);margin-top:2px;">Relances + IA</div>
       </div>
       <div class="upgrade-plan-btn" onclick="upgradeToP('business')">
         <div class="upgrade-plan-name">Business</div>
-        <div class="upgrade-plan-price">69€<small>/mois</small></div>
+        <div class="upgrade-plan-price">89€<small>/mois</small></div>
         <div style="font-size:11px;color:var(--muted);margin-top:2px;">Illimité + IA</div>
       </div>
     </div>
@@ -932,7 +932,7 @@ textarea{resize:vertical;min-height:70px;}
     <div class="upgrade-plans" style="justify-content:center;">
       <div class="upgrade-plan-btn" onclick="upgradeToP('business')">
         <div class="upgrade-plan-name">Business</div>
-        <div class="upgrade-plan-price">69€<small>/mois</small></div>
+        <div class="upgrade-plan-price">89€<small>/mois</small></div>
         <div style="font-size:11px;color:var(--muted);margin-top:2px;">Rapports + Multi-devises + IA</div>
       </div>
     </div>
@@ -1008,9 +1008,9 @@ function startApp() {
 }
 
 function showPaymentRequired() {
-  const planNames = { starter: 'Starter — 19€/mois', pro: 'Pro — 39€/mois', business: 'Business — 69€/mois' };
+  const planNames = { starter: 'Starter — 24€/mois', pro: 'Pro — 49€/mois', business: 'Business — 89€/mois' };
   const el = document.getElementById('payment-required-plan');
-  if (el) el.textContent = planNames[currentUser.plan] || currentUser.plan || 'Pro — 39€/mois';
+  if (el) el.textContent = planNames[currentUser.plan] || currentUser.plan || 'Pro — 49€/mois';
   showAuthScreen('payment-required');
 }
 
@@ -1222,7 +1222,7 @@ async function startStripeCheckout(plan) {
 function handleSuccessPage() {
   const params = new URLSearchParams(window.location.search);
   const plan = params.get('plan') || 'pro';
-  const planNames = { starter: 'Starter — 19€/mois', pro: 'Pro — 39€/mois', business: 'Business — 69€/mois' };
+  const planNames = { starter: 'Starter — 24€/mois', pro: 'Pro — 49€/mois', business: 'Business — 89€/mois' };
   console.log('[Stripe] Paiement réussi — plan:', plan, 'session_id:', params.get('session_id'));
   document.getElementById('success-plan-name').textContent = planNames[plan] || plan;
   if (currentUser) {
