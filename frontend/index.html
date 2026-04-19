@@ -142,6 +142,10 @@ textarea{resize:vertical;min-height:70px;}
 .ai-draft-label{font-size:11px;font-weight:600;color:var(--primary);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;}
 .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px;}
 @keyframes spin{to{transform:rotate(360deg);}}
+/* LOADING OVERLAY */
+#loading-overlay{position:fixed;inset:0;background:rgba(255,255,255,.75);z-index:300;display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;}
+.loading-ring{width:44px;height:44px;border:4px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite;}
+.loading-text{font-size:13px;color:var(--muted);}
 /* CHATBOT */
 .chat-layout{display:grid;grid-template-columns:1fr 320px;gap:16px;height:calc(100vh - 148px);}
 .chat-main{background:var(--white);border-radius:12px;box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden;}
@@ -940,6 +944,9 @@ textarea{resize:vertical;min-height:70px;}
   </div>
 </div>
 
+<!-- LOADING OVERLAY -->
+<div id="loading-overlay"><div class="loading-ring"></div><div class="loading-text">Chargement…</div></div>
+
 <!-- EMAIL MODAL -->
 <div class="modal-overlay" id="modal-email">
   <div class="modal">
@@ -969,6 +976,96 @@ textarea{resize:vertical;min-height:70px;}
 // ─── BACKEND URL ──────────────────────────────────────────────────────────────
 const BACKEND = 'https://facturo-production-2dbb.up.railway.app';
 
+// ─── API LAYER ────────────────────────────────────────────────────────────────
+const STATUS_FROM_API = { brouillon:'draft', envoyee:'pending', payee:'paid', en_retard:'overdue', annulee:'draft' };
+const STATUS_TO_API   = { draft:'brouillon', pending:'envoyee', paid:'payee', overdue:'en_retard' };
+
+async function apiCall(method, path, body) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (currentUser?.token && currentUser.token !== 'local') headers['Authorization'] = 'Bearer ' + currentUser.token;
+  const res = await fetch(BACKEND + path, { method, headers, body: body ? JSON.stringify(body) : undefined });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.erreur || `Erreur ${res.status}`);
+  return data;
+}
+
+function setLoading(on, msg) {
+  const el = document.getElementById('loading-overlay');
+  if (!el) return;
+  el.style.display = on ? 'flex' : 'none';
+  const txt = el.querySelector('.loading-text');
+  if (txt) txt.textContent = msg || 'Chargement…';
+}
+
+function backendToInvoice(f) {
+  const c = f.clients || {};
+  const lignes = (f.lignes_facture || []).sort((a,b) => (a.ordre||0)-(b.ordre||0));
+  const firstTva = lignes[0]?.taux_tva ?? 20;
+  const addrParts = [c.adresse, [c.code_postal, c.ville].filter(Boolean).join(' ')].filter(Boolean);
+  return {
+    _id: f.id,
+    clientId: f.client_id,
+    id: f.numero,
+    client: c.entreprise || c.nom || '',
+    email: c.email || '',
+    address: addrParts.join(', '),
+    date: f.date_emission || '',
+    due: f.date_echeance || '',
+    status: STATUS_FROM_API[f.statut] || 'draft',
+    tva: parseFloat(firstTva) || 20,
+    notes: f.conditions_paiement || f.notes || '',
+    currency: 'EUR',
+    items: lignes.map(l => ({ desc: l.description, qty: parseFloat(l.quantite), price: parseFloat(l.prix_unitaire) })),
+    subtotal: parseFloat(f.total_ht) || 0,
+    tvaAmt: parseFloat(f.total_tva) || 0,
+    total: parseFloat(f.total_ttc) || 0
+  };
+}
+
+async function loadInvoices() {
+  if (!currentUser || currentUser.token === 'local') {
+    const stored = localStorage.getItem('facturo_invoices_' + currentUser?.email);
+    invoices = stored ? JSON.parse(stored) : [];
+    return;
+  }
+  try {
+    const data = await apiCall('GET', '/api/factures?limite=500');
+    invoices = (data.factures || []).map(backendToInvoice);
+  } catch(e) {
+    console.error('[API] loadInvoices:', e.message);
+    toast('Erreur chargement factures : ' + e.message, true);
+    invoices = [];
+  }
+}
+
+async function loadClients() {
+  if (!currentUser || currentUser.token === 'local') return;
+  try {
+    const data = await apiCall('GET', '/api/clients?limite=500');
+    clients = data.clients || [];
+  } catch(e) {
+    console.error('[API] loadClients:', e.message);
+  }
+}
+
+async function loadInvoiceDetails(_id) {
+  const data = await apiCall('GET', `/api/factures/${_id}`);
+  const full = backendToInvoice(data.facture);
+  const idx = invoices.findIndex(i => i._id === _id);
+  if (idx !== -1) invoices[idx] = full;
+  return full;
+}
+
+async function ensureClient(name, email, address) {
+  let c = clients.find(c => c.email === email);
+  if (!c) {
+    const res = await apiCall('POST', '/api/clients', { nom: name, email, adresse: address || null });
+    c = res.client;
+    clients.push(c);
+  }
+  return c.id;
+}
+
 // ─── AUTH ─────────────────────────────────────────────────────────────────────
 let currentUser = null;
 
@@ -984,7 +1081,7 @@ function showRegister(plan) {
   if (plan) document.getElementById('reg-plan').value = plan;
 }
 
-function startApp() {
+async function startApp() {
   if (currentUser.email === 'jalylnestor228@gmail.com') {
     currentUser.paid = true;
     currentUser.plan = 'business';
@@ -998,8 +1095,10 @@ function startApp() {
   }
   document.getElementById('auth-wrap').style.display = 'none';
   document.getElementById('app-wrap').classList.add('show');
-  const stored = localStorage.getItem('facturo_invoices_' + currentUser.email);
-  invoices = stored ? JSON.parse(stored) : [];
+  setLoading(true, 'Chargement de vos données…');
+  await loadInvoices();
+  await loadClients();
+  setLoading(false);
   updateSidebarUser();
   renderDashboard();
   if (!localStorage.getItem('facturo_onboarded_' + currentUser.email)) {
@@ -1161,10 +1260,9 @@ async function doRegister() {
 
 function doLogout() {
   if (!confirm('Se déconnecter ?')) return;
-  currentUser = null;
+  currentUser = null; clients = [];
   localStorage.removeItem('facturo_session');
-  invoices = [];
-  editingId = null;
+  invoices = []; editingId = null;
   showAuthScreen('landing');
 }
 
@@ -1287,12 +1385,13 @@ function checkBusinessPlan() {
 
 // ─── STATE ────────────────────────────────────────────────────────────────────
 let invoices = [];
+let clients = [];
 let lineItems = [];
 let activeCtx = new Set(['invoices']);
 let editingId = null;
 
 function saveInvoices() {
-  if (currentUser) localStorage.setItem('facturo_invoices_' + currentUser.email, JSON.stringify(invoices));
+  if (currentUser?.token === 'local') localStorage.setItem('facturo_invoices_' + currentUser.email, JSON.stringify(invoices));
 }
 
 
@@ -1408,9 +1507,11 @@ function statusLabel(s) { return {paid:'Payée',pending:'En attente',overdue:'En
 
 // ─── INVOICES TABLE ───────────────────────────────────────────────────────────
 function renderInvoices(list) {
-  document.getElementById('invoicesTbody').innerHTML = list.map(i => `
+  document.getElementById('invoicesTbody').innerHTML = list.map(i => {
+    const key = i._id || i.id;
+    return `
     <tr>
-      <td data-label="Numéro"><span class="invoice-num" style="cursor:pointer" onclick="editInvoice('${i.id}')">${i.id}</span></td>
+      <td data-label="Numéro"><span class="invoice-num" style="cursor:pointer" onclick="editInvoice('${key}')">${i.id}</span></td>
       <td data-label="Client">${i.client}</td>
       <td data-label="Date">${fmtDate(i.date)}</td>
       <td data-label="Échéance">${fmtDate(i.due)}</td>
@@ -1419,28 +1520,46 @@ function renderInvoices(list) {
       <td data-label="Total TTC" style="font-weight:600;">${fmtMoneyC(i.total,i.currency||'EUR')}</td>
       <td data-label="Statut"><span class="badge badge-${i.status}">${statusLabel(i.status)}</span></td>
       <td data-label="">
-        <button class="btn btn-ghost btn-sm" onclick="editInvoice('${i.id}')">✏️</button>
-        <button class="btn btn-ghost btn-sm" onclick="downloadPDF('${i.id}')" title="Télécharger PDF">⬇️ PDF</button>
-        <button class="btn btn-ghost btn-sm" onclick="openEmailModal('${i.id}')" title="Envoyer par email">📧</button>
-        <button class="btn btn-ghost btn-sm" onclick="deleteInvoice('${i.id}')">🗑️</button>
+        <button class="btn btn-ghost btn-sm" onclick="editInvoice('${key}')">✏️</button>
+        <button class="btn btn-ghost btn-sm" onclick="downloadPDF('${key}')" title="Télécharger PDF">⬇️ PDF</button>
+        <button class="btn btn-ghost btn-sm" onclick="openEmailModal('${key}')" title="Envoyer par email">📧</button>
+        <button class="btn btn-ghost btn-sm" onclick="deleteInvoice('${key}')">🗑️</button>
       </td>
-    </tr>
-  `).join('') || '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--muted);">Aucune facture</td></tr>';
+    </tr>`;
+  }).join('') || '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--muted);">Aucune facture</td></tr>';
 }
 function filterInvoices() {
   const q = document.getElementById('searchInput').value.toLowerCase();
   const st = document.getElementById('filterStatus').value;
   renderInvoices(invoices.filter(i => (!q || i.client.toLowerCase().includes(q) || i.id.toLowerCase().includes(q)) && (!st || i.status===st)));
 }
-function deleteInvoice(id) {
+async function deleteInvoice(id) {
   if (!confirm('Supprimer cette facture ?')) return;
-  invoices = invoices.filter(i => i.id!==id);
-  saveInvoices(); renderInvoices(invoices); toast('Facture supprimée');
-}
-function editInvoice(id) {
-  const inv = invoices.find(i => i.id===id);
+  const inv = invoices.find(i => (i._id||i.id) === id);
   if (!inv) return;
-  editingId = id;
+  if (currentUser?.token !== 'local' && inv._id) {
+    setLoading(true, 'Suppression…');
+    try {
+      await apiCall('DELETE', `/api/factures/${inv._id}`);
+      await loadInvoices();
+    } catch(e) { toast('Erreur : ' + e.message, true); setLoading(false); return; }
+    setLoading(false);
+  } else {
+    invoices = invoices.filter(i => (i._id||i.id) !== id);
+    saveInvoices();
+  }
+  renderInvoices(invoices); toast('Facture supprimée');
+}
+async function editInvoice(id) {
+  let inv = invoices.find(i => (i._id||i.id) === id);
+  if (!inv) return;
+  // Charger les lignes si non disponibles (liste API ne les inclut pas)
+  if (currentUser?.token !== 'local' && inv._id && (!inv.items || !inv.items.length)) {
+    setLoading(true, 'Chargement de la facture…');
+    try { inv = await loadInvoiceDetails(inv._id); } catch(e) { toast('Erreur : ' + e.message, true); }
+    setLoading(false);
+  }
+  editingId = inv._id || inv.id;
   document.getElementById('f-num').value = inv.id;
   document.getElementById('f-status').value = inv.status;
   document.getElementById('f-date').value = inv.date;
@@ -1454,7 +1573,8 @@ function editInvoice(id) {
   if (cg) cg.style.display = currentUser?.plan === 'business' ? '' : 'none';
   const cs = document.getElementById('f-currency');
   if (cs) cs.value = inv.currency || 'EUR';
-  lineItems = inv.items.map(i => ({...i}));
+  lineItems = (inv.items || []).map(i => ({...i}));
+  if (!lineItems.length) lineItems = [{desc:'',qty:1,price:0}];
   renderLines(); updatePreview(); showPage('create');
 }
 
@@ -1525,19 +1645,18 @@ function updatePreview() {
   document.getElementById('pr-total').textContent = fmtMoneyC(total, currency);
   document.getElementById('pr-notes').textContent = document.getElementById('f-notes').value || 'Merci pour votre confiance.';
 }
-function saveInvoice() {
+async function saveInvoice() {
   const num = document.getElementById('f-num').value.trim();
   const client = document.getElementById('f-client').value.trim();
   if (!num || !client) { toast('Numéro et client requis', true); return; }
+
+  // ── Vérifications plan ──
   if (!editingId) {
     const plan = currentUser?.plan || 'starter';
-    // Client limit: Starter max 10 unique clients
     if (plan === 'starter') {
       const uniqueClients = new Set(invoices.map(i => i.client.toLowerCase().trim()));
       if (!uniqueClients.has(client.toLowerCase().trim()) && uniqueClients.size >= 10) {
-        toast('Limite atteinte (10 clients) — passez au plan Pro', true);
-        openModal('modal-upgrade');
-        return;
+        toast('Limite atteinte (10 clients) — passez au plan Pro', true); openModal('modal-upgrade'); return;
       }
     }
     const limits = { starter: 30, pro: 150, business: null };
@@ -1545,37 +1664,76 @@ function saveInvoice() {
     if (limit !== null) {
       const now = new Date();
       const thisMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-      const countThisMonth = invoices.filter(i => i.date && i.date.startsWith(thisMonth)).length;
-      if (countThisMonth >= limit) {
-        const next = plan === 'starter' ? 'Pro' : 'Business';
-        toast(`Limite atteinte (${limit}/mois) — passez au plan ${next}`, true);
-        openModal('modal-upgrade');
-        return;
+      if (invoices.filter(i => i.date && i.date.startsWith(thisMonth)).length >= limit) {
+        toast(`Limite atteinte (${limit}/mois) — passez au plan ${plan === 'starter' ? 'Pro' : 'Business'}`, true);
+        openModal('modal-upgrade'); return;
       }
     }
   }
+
   const sub = getSubtotal();
   const tvaRate = +(document.getElementById('f-tva').value||0);
   const tvaAmt = sub * tvaRate / 100;
-  const inv = {
-    id: num, client, email: document.getElementById('f-email').value,
-    address: document.getElementById('f-address').value,
-    date: document.getElementById('f-date').value, due: document.getElementById('f-due').value,
-    status: document.getElementById('f-status').value,
-    tva: tvaRate, notes: document.getElementById('f-notes').value,
-    currency: (currentUser?.plan === 'business' && document.getElementById('f-currency')) ? document.getElementById('f-currency').value : 'EUR',
-    items: lineItems.map(l=>({...l})),
-    subtotal: sub, tvaAmt, total: sub + tvaAmt
-  };
-  if (editingId) {
-    const idx = invoices.findIndex(i => i.id===editingId);
-    invoices[idx] = inv;
-    toast('Facture mise à jour');
-  } else {
-    invoices.unshift(inv);
-    toast('Facture créée');
+
+  // ── Utilisateur local (localStorage) ──
+  if (currentUser?.token === 'local') {
+    const inv = {
+      id: num, client, email: document.getElementById('f-email').value,
+      address: document.getElementById('f-address').value,
+      date: document.getElementById('f-date').value, due: document.getElementById('f-due').value,
+      status: document.getElementById('f-status').value,
+      tva: tvaRate, notes: document.getElementById('f-notes').value,
+      currency: (currentUser?.plan === 'business' && document.getElementById('f-currency')) ? document.getElementById('f-currency').value : 'EUR',
+      items: lineItems.map(l=>({...l})), subtotal: sub, tvaAmt, total: sub + tvaAmt
+    };
+    if (editingId) { const idx = invoices.findIndex(i => (i._id||i.id)===editingId); if(idx!==-1) invoices[idx]=inv; toast('Facture mise à jour'); }
+    else { invoices.unshift(inv); toast('Facture créée'); }
+    saveInvoices(); editingId = null; showPage('invoices'); return;
   }
-  saveInvoices(); editingId = null; showPage('invoices');
+
+  // ── Utilisateur API (Supabase) ──
+  const email = document.getElementById('f-email').value.trim();
+  if (!email) { toast('Email client requis', true); return; }
+  const lignes = lineItems.filter(l => l.desc && l.desc.trim()).map(l => ({
+    description: l.desc, quantite: l.qty, prix_unitaire: l.price, taux_tva: tvaRate
+  }));
+  if (!lignes.length) { toast('Au moins une ligne avec description requise', true); return; }
+
+  setLoading(true, editingId ? 'Mise à jour…' : 'Enregistrement…');
+  try {
+    const address = document.getElementById('f-address').value.trim();
+    const clientId = await ensureClient(client, email, address);
+    const body = {
+      clientId,
+      numero: num,
+      lignes,
+      dateEmission: document.getElementById('f-date').value,
+      dateEcheance: document.getElementById('f-due').value || null,
+      conditionsPaiement: document.getElementById('f-notes').value || null
+    };
+    const selectedStatut = STATUS_TO_API[document.getElementById('f-status').value] || 'brouillon';
+
+    if (editingId && editingId.includes('-') && editingId.length > 20) {
+      // UUID → PUT existant
+      body.statut = selectedStatut;
+      await apiCall('PUT', `/api/factures/${editingId}`, body);
+      toast('Facture mise à jour');
+    } else {
+      // Nouveau → POST puis PATCH statut si besoin
+      const res = await apiCall('POST', '/api/factures', body);
+      if (selectedStatut !== 'brouillon') {
+        await apiCall('PATCH', `/api/factures/${res.facture.id}/statut`, { statut: selectedStatut });
+      }
+      toast('Facture créée');
+    }
+    await loadInvoices();
+    editingId = null;
+    showPage('invoices');
+  } catch(e) {
+    toast('Erreur : ' + e.message, true);
+  } finally {
+    setLoading(false);
+  }
 }
 function resetForm() { editingId = null; initForm(); showPage('invoices'); }
 
@@ -1586,6 +1744,7 @@ function renderRelances() {
   if (!targets.length) { grid.innerHTML='<p style="color:var(--muted);font-size:14px;">Aucune facture à relancer.</p>'; return; }
   const today = new Date();
   grid.innerHTML = targets.map(inv => {
+    const key = inv._id || inv.id;
     const dueDate = new Date(inv.due);
     const diff = Math.round((today - dueDate) / 86400000);
     const isOver = inv.status==='overdue' || diff > 0;
@@ -1602,15 +1761,15 @@ function renderRelances() {
       <div class="relance-amount">${fmtMoney(inv.total)}</div>
       <div class="relance-days ${isOver?'red':'orange'}">${daysText}</div>
       <div class="relance-actions">
-        <button class="btn btn-primary btn-sm" onclick="genRelanceIA('${inv.id}',this)">✨ Générer relance IA</button>
-        <button class="btn btn-ghost btn-sm" onclick="markPaid('${inv.id}')">✓ Marquer payée</button>
+        <button class="btn btn-primary btn-sm" onclick="genRelanceIA('${key}',this)">✨ Générer relance IA</button>
+        <button class="btn btn-ghost btn-sm" onclick="markPaid('${key}')">✓ Marquer payée</button>
       </div>
-      <div class="ai-draft-box" id="draft-${inv.id}">
+      <div class="ai-draft-box" id="draft-${key}">
         <div class="ai-draft-label">✨ Brouillon IA</div>
         <div class="draft-content"></div>
         <div style="display:flex;gap:8px;margin-top:10px;">
-          <button class="btn btn-primary btn-sm" onclick="copyDraft('${inv.id}')">📋 Copier</button>
-          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('draft-${inv.id}').classList.remove('visible')">Fermer</button>
+          <button class="btn btn-primary btn-sm" onclick="copyDraft('${key}')">📋 Copier</button>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('draft-${key}').classList.remove('visible')">Fermer</button>
         </div>
       </div>
     </div>`;
@@ -1618,7 +1777,7 @@ function renderRelances() {
 }
 async function genRelanceIA(id, btn) {
   if (!checkAIPlan()) return;
-  const inv = invoices.find(i => i.id===id);
+  const inv = invoices.find(i => (i._id||i.id) === id);
   if (!inv) return;
   btn.disabled = true;
   btn.innerHTML = '<span class="spinner"></span>Génération…';
@@ -1645,9 +1804,20 @@ function copyDraft(id) {
   const txt = document.getElementById('draft-'+id).querySelector('.draft-content').textContent;
   navigator.clipboard.writeText(txt).then(() => toast('Copié dans le presse-papier'));
 }
-function markPaid(id) {
-  const inv = invoices.find(i => i.id===id);
-  if (inv) { inv.status='paid'; saveInvoices(); renderRelances(); toast(`${id} marquée comme payée`); }
+async function markPaid(id) {
+  const inv = invoices.find(i => (i._id||i.id) === id);
+  if (!inv) return;
+  if (currentUser?.token !== 'local' && inv._id) {
+    setLoading(true, 'Mise à jour…');
+    try {
+      await apiCall('PATCH', `/api/factures/${inv._id}/statut`, { statut: 'payee' });
+      await loadInvoices();
+    } catch(e) { toast('Erreur : ' + e.message, true); setLoading(false); return; }
+    setLoading(false);
+  } else {
+    inv.status = 'paid'; saveInvoices();
+  }
+  renderRelances(); toast(`${inv.id} marquée comme payée`);
 }
 
 // ─── CHAT ─────────────────────────────────────────────────────────────────────
@@ -1815,10 +1985,10 @@ function exportCSV() {
 // ─── RISQUE CLIENTS ──────────────────────────────────────────────────────────
 function renderRisque() {
   const today = new Date();
-  const clients = {};
+  const clientsRisque = {};
   invoices.forEach(inv => {
-    if (!clients[inv.client]) clients[inv.client] = { name: inv.client, email: inv.email, invoices: [], retards: 0, maxDelay: 0, totalImpaye: 0 };
-    const c = clients[inv.client];
+    if (!clientsRisque[inv.client]) clientsRisque[inv.client] = { name: inv.client, email: inv.email, invoices: [], retards: 0, maxDelay: 0, totalImpaye: 0 };
+    const c = clientsRisque[inv.client];
     c.invoices.push(inv);
     if (inv.status === 'overdue') {
       c.retards++;
@@ -1830,7 +2000,7 @@ function renderRisque() {
       if (delay > 30) { c.retards++; c.maxDelay = Math.max(c.maxDelay, delay); c.totalImpaye += inv.total; }
     }
   });
-  const clientList = Object.values(clients).map(c => {
+  const clientList = Object.values(clientsRisque).map(c => {
     let risk = 'faible';
     if (c.retards >= 2 || c.maxDelay > 30) risk = 'eleve';
     else if (c.retards === 1) risk = 'modere';
@@ -1879,8 +2049,14 @@ async function callClaude(messages, system) {
 }
 
 // ─── PDF DOWNLOAD ─────────────────────────────────────────────────────────────
-function downloadPDF(invoiceId) {
-  const inv = invoices.find(i => i.id === invoiceId);
+async function downloadPDF(invoiceId) {
+  let inv = invoices.find(i => (i._id||i.id) === invoiceId);
+  if (!inv) return;
+  if (currentUser?.token !== 'local' && inv._id && (!inv.items || !inv.items.length)) {
+    setLoading(true, 'Chargement…');
+    try { inv = await loadInvoiceDetails(inv._id); } catch(e) {}
+    setLoading(false);
+  }
   if (!inv) return;
   if (!window.jspdf) { toast('jsPDF non chargé — réessayez dans un instant', true); return; }
   const { jsPDF } = window.jspdf;
@@ -2026,7 +2202,7 @@ function downloadPDF(invoiceId) {
 // ─── EMAIL SEND ───────────────────────────────────────────────────────────────
 let _emailInvoiceId = null;
 function openEmailModal(invoiceId) {
-  const inv = invoices.find(i => i.id === invoiceId);
+  const inv = invoices.find(i => (i._id||i.id) === invoiceId);
   if (!inv) return;
   _emailInvoiceId = invoiceId;
   const currency = inv.currency || 'EUR';

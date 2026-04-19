@@ -123,7 +123,7 @@ const creerFacture = async (req, res) => {
     return res.status(400).json({ erreurs: erreurs.array() });
   }
 
-  const { clientId, lignes, dateEmission, dateEcheance, notes, conditionsPaiement, mentionsLegales } = req.body;
+  const { clientId, lignes, dateEmission, dateEcheance, notes, conditionsPaiement, mentionsLegales, numero: numeroRequis } = req.body;
 
   try {
     // Vérifier que le client appartient à l'utilisateur
@@ -138,7 +138,14 @@ const creerFacture = async (req, res) => {
       return res.status(404).json({ erreur: 'Client introuvable' });
     }
 
-    const numero = await genererNumero(req.utilisateur.id);
+    // Utiliser le numéro fourni par le frontend si disponible et unique
+    let numero;
+    if (numeroRequis) {
+      const { data: existing } = await supabase.from('factures').select('id').eq('utilisateur_id', req.utilisateur.id).eq('numero', numeroRequis).maybeSingle();
+      numero = existing ? await genererNumero(req.utilisateur.id) : numeroRequis;
+    } else {
+      numero = await genererNumero(req.utilisateur.id);
+    }
     const { lignes: lignesCalculees, total_ht, total_tva, total_ttc } = calculerMontants(lignes);
 
     // Créer la facture
