@@ -109,6 +109,7 @@ const listerPlans = async (req, res) => {
 
 // POST /api/stripe/webhook
 const webhook = async (req, res) => {
+  console.log('[Webhook] Secret présent:', !!process.env.STRIPE_WEBHOOK_SECRET);
   const sig = req.headers['stripe-signature'];
   let event;
 
