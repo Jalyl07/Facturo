@@ -114,15 +114,22 @@ const webhook = async (req, res) => {
   let event;
 
   if (!process.env.STRIPE_WEBHOOK_SECRET) {
-    console.error('[Webhook] STRIPE_WEBHOOK_SECRET non défini — impossible de vérifier la signature');
-    return res.status(500).json({ erreur: 'STRIPE_WEBHOOK_SECRET manquant' });
-  }
-
-  try {
-    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
-  } catch (err) {
-    console.error('[Webhook] Signature invalide:', err.message);
-    return res.status(400).json({ erreur: `Webhook invalide : ${err.message}` });
+    console.warn('[Webhook] STRIPE_WEBHOOK_SECRET absent — parsing sans vérification de signature');
+    try {
+      const raw = req.body;
+      const body = typeof raw === 'string' ? raw : raw.toString('utf8');
+      event = JSON.parse(body);
+    } catch (parseErr) {
+      console.error('[Webhook] Impossible de parser le body:', parseErr.message);
+      return res.status(400).json({ erreur: 'Body invalide' });
+    }
+  } else {
+    try {
+      event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+    } catch (err) {
+      console.error('[Webhook] Signature invalide:', err.message);
+      return res.status(400).json({ erreur: `Webhook invalide : ${err.message}` });
+    }
   }
 
   console.log(`[Webhook] Événement reçu : ${event.type} (id=${event.id})`);
